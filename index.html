@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PCP Visual C-TEC - V106 Unificado</title>
+
+  <!-- Bibliotecas Externas (PDF.js, html2canvas, SheetJS/XLSX) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <!-- Folhas de Estilo Modulares -->
+  <link rel="stylesheet" href="src/styles/main.css">
+  <link rel="stylesheet" href="src/styles/patches.css">
+</head>
+<body>
+  <!-- Menu Lateral e Navegacao -->
+  <aside>
+    <div class="logo">
+      <img src="assets/logo-ctec.png" alt="Grupo C-TEC">
+    </div>
+    <div class="nav">
+<button class=active data-p=dashboard>Dashboard</button><button data-p=estoque>Estoque</button><button data-p=pendencias>Pendências</button><button data-p=importacoes>Importações CIGAM</button>
+<button data-p=mps>PMP</button><button data-p=semanal>Programação Semanal</button><button data-p=bombonas>Pedidos de Bombonas</button><button data-p=producao>Dashboard Produção</button><button data-p=engenharia>Engenharia</button><button data-p=materiais>Matérias-primas</button><button data-p=parametros_mp>Parâmetros MP</button><button data-p=mrp>MRP / Compras</button></div></aside>
+<main><div class=top><div><h1>PCP Visual</h1><span class=muted>Grupo C-TEC • PCP, programação semanal, MRP, compras e engenharia • V106 Unificado</span></div><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><button id=topBackup class=secondary>Backup JSON</button><label class="filelabel secondary" style="margin:0;cursor:pointer">Restaurar Backup<input type=file id=topRestore accept=".json,application/json"></label><span id=clock></span></div></div><div class=wrap>
+
+<section id=dashboard class="panel active"><div class=hero><h2>Visão Geral de Estoques</h2><p>Cartões clicáveis. Itens sob demanda ficam ocultos por padrão. Produtos (BOL) de exportação e itens em KG são controlados como SKUs separados.</p></div>
+<div class=cards><div class=card data-f=""><small>Itens exibidos</small><b id=ct>0</b></div><div class=card data-f=NORMAL><small>Normal</small><b id=cn>0</b></div><div class=card data-f="ABAIXO DA REFERÊNCIA"><small>Abaixo da referência</small><b id=ca>0</b></div><div class=card data-f=ATENÇÃO><small>Atenção</small><b id=cat>0</b></div><div class="card critical" data-f=CRÍTICO><small>Crítico</small><b id=cc>0</b></div></div>
+<div class=insight-grid>
+  <div class=viz-panel><div class=viz-head><div><h3>Distribuição dos estoques</h3><p>Quantidade e participação por status nos itens exibidos.</p></div><span class=viz-tag>Atualiza com os filtros</span></div><div id=statusOverviewChart></div></div>
+  <div class=viz-panel><div class=viz-head><div><h3>Risco por linha de produto</h3><p>Itens em Atenção e Crítico agrupados por linha.</p></div><span class=viz-tag>Foco de ação</span></div><div id=lineRiskOverviewChart></div></div>
+</div>
+<div class=toolbar><input id=q placeholder="Buscar produto, item ou código CIGAM"><select id=linha><option value="">Todas as linhas</option></select><select id=st><option value="">Todos os status</option><option>NORMAL</option><option>ABAIXO DA REFERÊNCIA</option><option>ATENÇÃO</option><option>CRÍTICO</option><option>AGUARDANDO ESTOQUE</option><option>SOB DEMANDA</option><option>SEM PEDIDO</option></select><label class=toggle><input type=checkbox id=showDemand> Mostrar itens sob demanda</label><label class=toggle><input type=checkbox id=showThirdClosed> Mostrar terceirizados sem pedido</label><button id=goImp class=primary>Importar relatório CIGAM</button><button id=csv>Exportar CSV</button></div>
+<div class=tablewrap><table><thead><tr><th>Linha</th><th>Produto</th><th>Tipo</th><th>Apresentação</th><th>Cód. CIGAM</th><th>Referência</th><th>Atenção</th><th>Estoque</th><th>Status</th><th>Atualização</th></tr></thead><tbody id=body></tbody></table></div></section>
+
+<section id=estoque class=panel><div class=hero><h2>Estoque</h2><p>Base completa de produtos e apresentações. Esta tela mostra o cadastro mesmo quando o item está sob demanda ou sem saldo atualizado.</p></div><div class=stock-summary><div class=mini><small>Total de itens</small><b id=stockTotal>0</b></div><div class=mini><small>Com estoque informado</small><b id=stockWithValue>0</b></div><div class=mini><small>Críticos</small><b id=stockCritical>0</b></div><div class=mini><small>Atenção</small><b id=stockAttention>0</b></div><div class=mini><small>Sob demanda</small><b id=stockDemand>0</b></div></div><div class=toolbar><input id=q2 placeholder="Buscar produto, item ou código"><select id=tipo2><option value="">Todos os tipos</option><option>Próprio</option><option>Terceirizado</option></select><select id=stockLine><option value="">Todas as linhas</option></select><select id=stockStatus><option value="">Todos os status</option><option>NORMAL</option><option>ABAIXO DA REFERÊNCIA</option><option>ATENÇÃO</option><option>CRÍTICO</option><option>AGUARDANDO ESTOQUE</option><option>SOB DEMANDA</option><option>SEM PEDIDO</option></select><span style="display:none"><input type=checkbox id=showDemand2><input type=checkbox id=showThirdClosed2></span><button id=csv2>Exportar CSV</button><button id=backup class=secondary>Backup JSON</button><label class="filelabel secondary">Restaurar Backup<input type=file id=restore accept=".json,application/json"></label></div><div class=tablewrap><table><thead><tr><th>Linha</th><th>Produto</th><th>Apresentação</th><th>Tipo</th><th>Código</th><th>Referência</th><th>Atenção</th><th>Estoque</th><th>Status</th><th>Atualização</th></tr></thead><tbody id=body2></tbody></table></div></section>
+
+<section id=pendencias class=panel>
+<div class=hero><h2>Pendências de Cadastro</h2><p>Itens que precisam de complemento no cadastro. Produtos 0/0 continuam tratados como sob demanda e não entram como erro de parâmetro.</p></div>
+<div class="cards pendingcards">
+  <div class=card><small>Total de pendências</small><b id=ptotal>0</b></div>
+  <div class=card><small>Sem código CIGAM</small><b id=pcod>0</b></div>
+  <div class=card><small>Parâmetro incompleto</small><b id=pparam>0</b></div>
+  <div class=card><small>Sem estoque atualizado</small><b id=pstock>0</b></div>
+</div>
+<div class=toolbar>
+  <input id=pq placeholder="Buscar produto, item ou código">
+  <select id=ptype>
+    <option value="">Todas as pendências</option>
+    <option value="SEM CÓDIGO">Sem código CIGAM</option>
+    <option value="PARÂMETRO">Parâmetro incompleto</option>
+    <option value="SEM ESTOQUE">Sem estoque atualizado</option>
+    <option value="REVISAR">Revisar última importação</option>
+  </select>
+  <button id=pcsv>Exportar pendências CSV</button>
+</div>
+<div class=pend-help>Ao clicar em um produto cadastrado, você abre os detalhes e pode ajustar Referência e Atenção. Itens de “Revisar” ainda não estão vinculados ao cadastro.</div>
+<div class=tablewrap style="margin-top:12px"><table>
+<thead><tr><th>Linha</th><th>Item</th><th>Código</th><th>Estoque</th><th>Pendência</th><th>Atualização</th></tr></thead>
+<tbody id=pbody></tbody>
+</table></div>
+</section>
+
+<section id=mps class=panel><div class=hero><h2>PMP — Plano Mestre de Produção</h2><p>Base mensal editável do PCP. Informe quanto pretende produzir de cada apresentação no mês e acompanhe o que já foi transformado em bateladas.</p></div><div class=mps-tabs><button class=active data-mpsview=necessidades>Plano Mestre Mensal</button><button data-mpsview=bateladas>Programação de Bateladas</button></div><div id=mps_necessidades class="mpsview active"><div class=pmp-toolbar-main><label>Mês do PMP<input id=pmpMonth type=month></label><input id=mpsQ placeholder="Filtrar por nome do produto, apresentação ou código"><select id=mpsLinha><option value="">Todos os setores</option></select><select id=mpsNeedFilter><option value="">Todos os itens</option><option value="COM PLANO">Somente com plano</option><option value="A PROGRAMAR">Somente a programar</option></select><button id=pmpCopyPrev class=secondary>Copiar mês anterior</button></div><div class=pmp-month-kpis><div class=mini><small>Itens com plano</small><b id=mpsNeedCount>0</b></div><div class=mini><small>Unidades planejadas</small><b id=mpsMtoTotal>0</b></div><div class=mini><small>Unidades em bateladas</small><b id=mpsMtsTotal>0</b></div><div class=mini><small>Saldo a programar</small><b id=mpsBatchCount>0</b></div></div><div class=mps-help>O PMP mensal é a sua base de decisão. Digite a quantidade desejada por apresentação. As bateladas do mesmo mês são descontadas automaticamente e o sistema mostra o <b>saldo a programar</b>.</div><div class=toolbar><button id=mpsCsv>Exportar PMP mensal CSV</button></div><div class=tablewrap><table><thead><tr><th>Setor</th><th>Produto</th><th>Apresentação</th><th>Código</th><th>Estoque atual</th><th>Plano mensal (un.)</th><th>Já programado (un.)</th><th>Saldo a programar</th><th>Observação</th></tr></thead><tbody id=mpsBody></tbody></table></div></div><div id=mps_bateladas class=mpsview><div class=mps-help>Criação simplificada: escolha produto, data, tanque e quantidades. A lista é separada por setor e a batelada lançada mais recentemente fica no topo.</div><div class=toolbar><button id=newBatch class=primary>+ Nova batelada</button><input id=batchNameFilter class=batch-filter-name placeholder="Filtrar por nome do produto"><select id=batchSectorFilter><option value="">Todos os setores</option></select><select id=batchStatusFilter><option value="">Todas as situações</option><option>Rascunho</option><option>Programada</option><option>Em produção</option><option>Finalizada</option></select></div><div class=notice>Se uma batelada antiga estiver em outro arquivo/versão do PCP Visual, use <b>Restaurar Backup</b> na aba Estoque. Esta versão também tenta migrar automaticamente chaves antigas do PMP salvas no mesmo navegador.</div><div id=batchList></div></div></section>
+
+<section id=engenharia class=panel>
+<div class=hero><h2>Engenharia de Produtos</h2><p>Fórmulas em percentual, vínculos, matérias-primas, tanques, apresentações e embalagens. Use o botão Ficha em Produtos × Fórmulas para visualizar tudo o que cada produto utiliza.</p></div>
+<div class=visual-grid>
+  <div class=visual-card><small>Fórmulas cadastradas</small><b id=engFormulaCount>0</b><div class=sub>Base + variações</div></div>
+  <div class=visual-card><small>Produtos vinculados</small><b id=engProductCount>0</b><div class=sub>Inclui produtos com fórmula igual</div></div>
+  <div class=visual-card><small>Variações</small><b id=engVariationCount>0</b><div class=sub>Com composição própria derivada</div></div>
+  <div class=visual-card><small>Pendentes</small><b id=engPendingCount>0</b><div class=sub>Redux PH permanece em aberto</div></div>
+</div>
+<div class=eng-tabs><button class=active data-engview=formulas>Fórmulas</button><button data-engview=produtos>Produtos × Fórmulas</button><button data-engview=embalagens>Engenharia de Embalagens</button></div>
+<div id=eng_formulas class="engview active">
+  <div class=toolbar><input id=engQ placeholder="Buscar fórmula ou matéria-prima"><select id=engType><option value="">Todos os tipos</option><option value=BASE>Fórmula base</option><option value=VARIAÇÃO>Variação</option><option value=PENDENTE>Pendente</option></select></div>
+  <div class=tablewrap><table><thead><tr><th>Fórmula</th><th>Tipo</th><th>Fórmula-base</th><th>Componentes</th><th>Soma %</th><th>Referências preenchidas</th><th>Observação</th></tr></thead><tbody id=engFormulaBody></tbody></table></div>
+</div>
+<div id=eng_produtos class=engview>
+  <div class=toolbar><input id=engProdQ placeholder="Buscar produto ou fórmula"><select id=engProdRel><option value="">Todas as relações</option><option>BASE</option><option>IGUAL</option><option>VARIAÇÃO</option><option>SEM FÓRMULA</option><option>DESCONTINUADO</option><option>DESCONSIDERADO</option><option>PENDENTE</option></select></div>
+  <div class=tablewrap><table><thead><tr><th>Linha</th><th>Produto</th><th>Relação</th><th>Fórmula utilizada</th><th>Base da variação</th><th>Bombona 5L</th><th>Caixa 5L</th><th>Batelada de Referência</th><th>Observação</th><th>Ação</th></tr></thead><tbody id=engProductBody></tbody></table></div>
+</div>
+<div id=eng_embalagens class=engview>
+  <div class=notice><b>Regra das caixas de 5L:</b> 4 bombonas por caixa. Caixa C-TEC para produtos C-TEC, Caixa Globo Vac para a marca Globo Vac, Caixa Crop para a linha C-TEC Crop e Caixa sem emblema para produtos terceirizados.</div>
+  <div class=toolbar><input id=engPackQ placeholder="Buscar produto, marca, cor ou caixa"></div>
+  <div class=tablewrap><table><thead><tr><th>Linha</th><th>Produto</th><th>Marca / Família</th><th>Bombona 5L</th><th>Modelo</th><th>Caixa 5L</th><th>Unidades por caixa</th></tr></thead><tbody id=engPackBody></tbody></table></div>
+</div>
+</section>
+
+<section id=materiais class=panel>
+<div class=hero><h2>Matérias-primas Padronizadas</h2><p>O estoque de matérias-primas pode ser atualizado pelo relatório do CIGAM em formato <b>POSIÇÃO DE ESTOQUE</b> ou <b>Lote / Código_Material / Descrição / Qtde</b>. Os lotes do mesmo código são somados automaticamente e vinculados aos nomes padronizados usados pela Engenharia e pelo MRP.</p></div>
+<div class=mp-import-grid>
+  <div class=box style="margin:0"><h3>Atualizar estoque de matérias-primas</h3>
+    <div class=notice>Importe o PDF <b>POSIÇÃO DE ESTOQUE — CG02296</b>. Os lotes do mesmo código são somados automaticamente. A importação substitui a posição anterior e mantém histórico.</div>
+    <div style="margin-top:12px"><label class="filelabel primary">Selecionar relatório de MP<input type=file id=mpPdf accept="application/pdf"></label> <span id=mpMsg class=muted></span></div>
+    <div class=mp-source id=mpSource></div>
+  </div>
+  <div class=box style="margin:0"><h3>Histórico de estoque MP</h3><div id=mpHistory class="muted mp-history">Nenhuma atualização diária importada ainda.</div></div>
+</div>
+<div class=visual-grid>
+  <div class=visual-card><small>Matérias-primas no cadastro</small><b id=matCount>0</b><div class=sub>Cadastro único de engenharia + estoque</div></div>
+  <div class=visual-card><small>Com saldo atualizado</small><b id=matStocked>0</b><div class=sub>Encontradas na posição de estoque</div></div>
+  <div class=visual-card><small>Sem saldo no relatório</small><b id=matNoStock>0</b><div class=sub>Revisar antes de comprar</div></div>
+  <div class=visual-card><small>Componentes zerados</small><b id=matZero>0</b><div class=sub>QSP / inativos / condicionais</div></div>
+</div>
+<div class="viz-panel material-chart"><div class=viz-head><div><h3>Matérias-primas mais recorrentes</h3><p>Top 10 por quantidade de fórmulas em que aparecem.</p></div><span class=viz-tag>Engenharia</span></div><div id=matTopChart></div></div>
+<div class=toolbar><input id=matQ placeholder="Buscar matéria-prima padronizada ou código"><select id=matFreq><option value="">Todas as frequências</option><option value=5>Usada em 5+ fórmulas</option><option value=10>Usada em 10+ fórmulas</option></select><select id=matCadastro><option value="">Todos os saldos</option><option value=COM>Com saldo no relatório</option><option value=SEM>Sem saldo no relatório</option></select></div>
+<div class=tablewrap><table><thead><tr><th>Código CIGAM</th><th>Matéria-prima padronizada</th><th>Estoque atual</th><th>Fórmulas</th><th>Maior %</th><th>Menor % &gt; 0</th><th>Status</th><th>Fórmulas relacionadas</th></tr></thead><tbody id=matBody></tbody></table></div>
+</section>
+
+
+<section id=parametros_mp class=panel>
+<div class=hero><h2>Parâmetros de Estoque — Matérias-primas</h2><p>Política de estoques utilizada pelo MRP de Compras. Os valores abaixo foram carregados da tabela de parâmetros enviada e podem ser ajustados sem alterar o código do sistema.</p></div>
+<div class="cards mp-policy-kpis">
+  <div class=card><small>Materiais parametrizados</small><b id=mpParamCount>0</b></div>
+  <div class=card><small>Classe A</small><b id=mpParamA>0</b></div>
+  <div class=card><small>Lead time médio</small><b id=mpParamLead>0 dias</b></div>
+  <div class=card><small>Estoque máximo proposto</small><b id=mpParamMaxValue>R$ 0</b></div>
+  <div class=card><small>Sem vínculo no cadastro</small><b id=mpParamUnlinked>0</b></div>
+  <div class=card><small>Parâmetros a revisar</small><b id=mpParamReview>0</b></div>
+</div>
+<div class=notice><b>Como o MRP usa estes parâmetros:</b> o CIGAM fornece o estoque atual; o PMP + fórmulas geram a necessidade; esta tabela define consumo médio mensal, estoque mínimo, ponto de pedido, lote de compra, estoque máximo, lead time e custo. <b>Consumo total do período, consumo máximo e estoque médio histórico foram retirados do controle operacional.</b> A classificação ABC agora é calculada pelo <b>consumo médio mensal × custo unitário</b>. A compra sugerida é acionada quando o saldo projetado chega ao ponto de pedido. O lote de compra é tratado como a quantidade padrão de reposição: sugere 1 lote e só multiplica o lote quando a falta para atender o plano for maior que um lote.</div>
+<div class=toolbar>
+  <input id=mpParamQ placeholder="Buscar item ou matéria-prima">
+  <select id=mpParamABC><option value="">Todas as classes ABC</option><option value=A>Classe A</option><option value=B>Classe B</option><option value=C>Classe C</option></select>
+  <select id=mpParamLink><option value="">Todos os vínculos</option><option value=OK>Vinculados ao cadastro</option><option value=SEM>Sem vínculo</option></select>
+  <button id=mpParamSave class=primary>Salvar parâmetros</button>
+  <button id=mpParamExport>Exportar Excel</button>
+  <label class="filelabel secondary">Importar parâmetros<input id=mpParamImport type=file accept=".xlsx,.xls,.csv,text/csv"></label>
+  <button id=mpParamReset>Restaurar tabela-base</button>
+</div>
+<div id=mpParamMsg class=muted style="margin:0 0 10px"></div>
+<div class=tablewrap><table class=mp-policy-table><thead><tr>
+<th>Item</th><th>Matéria-prima</th><th>ABC</th><th>Cons. médio/mês</th><th>LT (dias)</th><th>Est. mínimo</th><th>P. pedido</th><th>Lote compra</th><th>Est. máximo</th><th>Custo/kg</th><th>Validação</th><th>Vínculo</th>
+</tr></thead><tbody id=mpParamBody></tbody></table></div>
+</section>
+
+<section id=mrp class=panel>
+<div class=hero><h2>MRP / Compras — Política de Estoques</h2><p>Combina estoque atual do CIGAM, necessidade das bateladas abertas e parâmetros de estoque para antecipar ruptura, priorizar compras e estimar o valor financeiro da reposição.</p></div>
+<div class="cards mrp-kpis v90-mrp-kpis">
+  <div class=card><small>Bateladas consideradas</small><b id=mrpBatchCount>0</b></div>
+  <div class=card><small>Materiais consumidos</small><b id=mrpMatCount>0</b></div>
+  <div class="card critical"><small>Rupturas / P1</small><b id=mrpRuptureCount>0</b></div>
+  <div class=card><small>Críticos / P2</small><b id=mrpCriticalCount>0</b></div>
+  <div class=card><small>Programar compra / P3</small><b id=mrpOrderCount>0</b></div>
+  <div class=card><small>Compra sugerida</small><b id=mrpSuggestedKg>0 kg</b></div>
+  <div class=card><small>Valor compra sugerida</small><b id=mrpSuggestedValue>R$ 0</b></div>
+  <div class=card><small>Valor estoque atual</small><b id=mrpStockValue>R$ 0</b></div>
+  <div class=card><small>Saldo MP atualizado em</small><b id=mrpStockDate style="font-size:16px">—</b></div>
+</div>
+<div class=mrp-note><b>Decisão automática:</b> <b>P1</b> = ruptura/sem estoque para o plano; <b>P2</b> = abaixo do mínimo ou cobertura menor que o lead time; <b>P3</b> = saldo projetado atingiu o ponto de pedido. <b>Compra mínima</b> atende apenas o plano; <b>Compra sugerida</b> usa o lote padrão de reposição e só multiplica o lote quando a falta real for maior que um lote.</div>
+<div class=toolbar>
+  <select id=mrpBatchFilter><option value=OPEN>Todas em aberto — A Fazer até Envase</option></select>
+  <select id=mrpView><option value=PLAN selected>Materiais com consumo no plano</option><option value=ACTION>Somente ações de compra</option><option value=P1>Somente P1 — Urgente</option><option value=P2>Somente P2 — Alta</option><option value=P3>Somente P3 — Programar</option><option value=ALL>Todos os materiais</option></select>
+  <input id=mrpQ placeholder="Buscar matéria-prima ou código">
+  <button id=mrpCsv class=primary>Exportar MRP completo (.xlsx)</button><button id=mrpBuyCsv>Exportar somente compras</button>
+</div>
+<div id=mrpProblems></div>
+<div class="viz-panel mrp-chart"><div class=viz-head><div><h3>Maiores compras sugeridas</h3><p>Top 10 em kg, considerando política de estoque e lote de compra.</p></div><span class=viz-tag>Compras</span></div><div id=mrpShortageChart></div></div>
+<div class="viz-panel mrp-buy-view">
+  <div class=viz-head><div><h3>Decisão de Compras</h3><p>Saldo projetado, cobertura, prioridade e valor estimado da reposição.</p></div><span class=viz-tag>MRP + estoque</span></div>
+  <div class=tablewrap><table class=v90-mrp-table><thead><tr>
+  <th>Código</th><th>Matéria-prima</th><th>ABC</th><th>Est. atual</th><th>Necess.</th><th>Saldo proj.</th><th>Mín.</th><th>P. pedido</th><th>Cob.</th><th>LT</th><th>Comp. mín.</th><th>Comp. sug.</th><th>R$ compra</th><th>Prior.</th><th>Sit.</th>
+  </tr></thead><tbody id=mrpBody></tbody></table></div>
+</div>
+</section>
+
+<section id=semanal class=panel>
+<div class=hero><h2>Programação Semanal</h2><p>Quadro semanal no padrão usado pela fábrica: segunda a sexta permanecem visíveis, inclusive as produções já finalizadas. Clique nas etapas diretamente na tabela para atualizar Em Fila, Produção, Envase e Apontamento; as etapas anteriores ficam marcadas automaticamente.</p></div>
+<div class="cards weekly-kpis weekly-management-kpis">
+  <div class=card><small>Total da semana</small><b id=weekKg>0 kg</b></div>
+  <div class=card><small>Média diária</small><b id=weekAvg>0 kg</b></div>
+  <div class=card><small>Kg apontados</small><b id=weekDoneKg>0 kg</b></div>
+  <div class=card><small>Programação concluída</small><b id=weekDonePct>0%</b></div>
+  <div class=card><small>Kg em produção</small><b id=weekProdKg>0 kg</b></div>
+  <div class=card><small>Kg em envase</small><b id=weekFillKg>0 kg</b></div>
+  <div class=card><small>Kg em fila</small><b id=weekQueueKg>0 kg</b></div>
+  <div class=card><small>Saldo da semana</small><b id=weekRemainKg>0 kg</b></div>
+  <div class=card><small>Bateladas concluídas</small><b id=weekBatchProgress>0 / 0</b></div>
+  <div class=card><small>S&amp;OP MTO / MTS / BO</small><b id=weekSop style="font-size:15px">0 / 0 / 0</b></div>
+</div>
+<div class=toolbar><label>Semana <input id=weekSelect type=week></label><button id=weekCopy class=primary>Copiar programação semanal</button><button id=weekCsv>Exportar CSV</button><button id=weekPrint class=secondary>Imprimir / PDF da semana</button></div>
+<div class="viz-panel weekly-share">
+  <div class=viz-head><div><h3>Relatório semanal para WhatsApp</h3><p>Quadro visual de segunda a sexta, com S&amp;OP e andamento das etapas. O botão de imagem gera um PNG único pronto para enviar ao grupo.</p></div><span class=viz-tag>Uma única imagem</span></div>
+  <div class=toolbar><button id=weekSharePng class=primary>Gerar imagem para WhatsApp (PNG)</button><button id=weekShareCopy>Copiar resumo em texto</button><button id=weekSharePrint class=secondary>PDF / impressão (opcional)</button></div>
+  <div id=weeklyShareCard></div>
+</div>
+
+<div class=notice><b>Cores da linha:</b> <span class="line-tag anvisa">ANVISA</span> <span class="line-tag mapa">MAPA</span> <span class="line-tag crop">CROP</span>. Os kg são calculados por <b>Quantidade × Densidade × Litragem</b> (itens em KG usam o peso nominal da apresentação).</div>
+<div id=weeklyDays></div>
+<div class=viz-panel><div class=viz-head><div><h3>Bombonas consumidas na semana</h3><p>Detalhamento por litragem, cor e modelo. Modelo C é o padrão; exceções Modelo B seguem o cadastro enviado.</p></div><span class=viz-tag>5L • 20L • 50L • 200L</span></div><div id=weeklyPackaging></div></div>
+<div class=viz-panel><div class=viz-head><div><h3>Caixas consumidas para 5L</h3><p>Cada caixa comporta 4 bombonas de 5L. C-TEC, Globo Vac e Crop usam caixas próprias; produtos terceirizados usam caixa sem emblema.</p></div><span class=viz-tag>4 bombonas / caixa</span></div><div id=weeklyBoxes></div></div>
+</section>
+
+<section id=bombonas class=panel>
+<div class=hero><h2>Pedidos de Bombonas</h2><p>Transforma a programação em necessidade de embalagens, pacotes e cargas. Bombonas transportadas a granel, sem paletização.</p></div>
+<div class=cards><div class=card><small>Bombonas necessárias</small><b id=boNeed>0</b></div><div class=card><small>Pacotes base</small><b id=boPacks>0</b></div><div class=card><small>Cubagem base</small><b id=boCube>0 m³</b></div><div class=card><small>Cargas planejadas</small><b id=boLoads>0</b></div><div class=card><small>Limite operacional</small><b>83 m³</b><small>físico 84 m³</small></div></div>
+<div class=toolbar>
+<select id=boScope><option value=WEEK>Semana selecionada</option><option value=OPEN>Todas as bateladas abertas</option><option value=CONFIRM>Programadas + Em produção</option></select>
+<label>Semana <input id=boWeek type=week></label>
+<label class=toggle><input type=checkbox id=boUseStock checked> Descontar estoque atual</label>
+<select id=boComplete><option value="">Não completar espaço</option></select>
+<button id=boCopy class=primary>Copiar pedido</button><button id=boCsv>Exportar CSV</button>
+</div>
+<div class=notice><b>Pacotes:</b> 5L = 35 un. • 20L = 10 un. • 50L = 4 un. • 200L = 1 un. &nbsp; | &nbsp; <b>Cubagem/pacote:</b> 5L = 0,3371 m³ • 20L = 0,2844 m³ • 50L = 0,2950 m³ • 200L = 0,4000 m³. O fechamento usa <b>83 m³</b>, deixando 1 m³ de folga frente à capacidade física de 84 m³.</div>
+<div class=tablewrap><table><thead><tr><th>Bombona</th><th>Cor</th><th>Modelo</th><th>Necessidade produção</th><th>Estoque atual</th><th>Falta</th><th>Un./pacote</th><th>Pacotes base</th><th>Pedido base (un.)</th><th>Sobra do pacote</th><th>Cubagem base</th><th>Complemento</th><th>Total pedido</th></tr></thead><tbody id=boBody></tbody></table></div>
+<div id=boLoadsBox class=order-loads></div>
+</section>
+
+<section id=producao class=panel>
+<div class=hero><h2>Dashboard de Produção</h2><p>Visão executiva com números simplificados e gráficos de produção e vendas, além do acompanhamento operacional das bateladas finalizadas.</p></div>
+<div class=prod-edit-panel><div class=viz-head><div><h3>Metas e dados editáveis</h3><p>Atualize as metas e os valores mensais de 2026. Os gráficos e indicadores são recalculados automaticamente.</p></div><span class=viz-tag>Editável</span></div><div class=prod-edit-grid><label>Meta anual de vendas (t)<input id=prodGoalSales type=number step=0.01></label><label>Meta anual de produção (t)<input id=prodGoalProduction type=number step=0.01></label><label>Produção base 2025 (t)<input id=prodBaseProduction type=number step=0.01></label><label style="grid-column:1/-1">Observação do dashboard<textarea id=prodDashNote placeholder="Ex.: revisão de meta, previsão comercial, detalhe do mês..."></textarea></label></div><div class=toolbar><button id=prodSaveTargets class=primary>Salvar metas e detalhes</button></div><div class=tablewrap><table class=prod-month-edit><thead><tr><th>Mês</th><th>Produção 2026 (t)</th><th>Vendas 2026 (t)</th><th>Dias úteis</th></tr></thead><tbody id=prodEditBody></tbody></table></div></div>
+<div class="prod-kpi-grid" style="margin-bottom:14px">
+  <div class=prod-kpi><small>Produção 2026</small><b id=execProdYtd>0 t</b><span id=execProdHint>Acumulado do ano</span></div>
+  <div class=prod-kpi><small>Vendas 2026</small><b id=execSalesYtd>0 t</b><span id=execSalesHint>Acumulado do ano</span></div>
+  <div class=prod-kpi><small>Meta de vendas</small><b id=execGoalStatus>0%</b><span id=execGoalHint>0 / 0 t</span></div>
+  <div class=prod-kpi><small>Produção vs 2025</small><b id=execProdVs2025>0%</b><span id=execProdVs2025Hint>Comparativo anual</span></div>
+  <div class=prod-kpi><small>Média dia produção 2026</small><b id=execProdAvg>0 t</b><span id=execProdAvgHint>Média operacional</span></div>
+  <div class=prod-kpi><small>Média dia vendas 2026</small><b id=execSalesAvg>0 t</b><span id=execSalesAvgHint>Média comercial</span></div>
+</div>
+<div class="prod-exec-grid" style="margin-bottom:14px">
+  <div class=viz-panel><div class=viz-head><div><h3>Produção x Vendas 2026</h3><p>Leitura simples dos meses com valores de produção e vendas.</p></div><span class=viz-tag>2026</span></div><div id=execProdSalesChart class="exec-bars dual"></div><div class=exec-legend><span class=lg-prod>Produção</span><span class=lg-sales>Vendas</span></div></div>
+  <div class=viz-panel><div class=viz-head><div><h3>Produção 2025 x 2026</h3><p>Comparativo mensal do histórico produtivo.</p></div><span class=viz-tag>Comparativo</span></div><div id=execProdCompareChart class="exec-bars dual"></div><div class=exec-legend><span class=lg-prev>2025</span><span class=lg-prod>2026</span></div></div>
+</div>
+<div class="prod-split" style="margin-bottom:14px">
+  <div class="viz-panel exec-summary-table"><div class=viz-head><div><h3>Resumo mensal simplificado</h3><p>Produção, vendas e variação de vendas sobre produção em 2026.</p></div><span class=viz-tag>Mensal</span></div><div id=execSummaryTable></div></div>
+  <div class=viz-panel style="min-width:0;overflow:hidden"><div class=viz-head><div><h3>Resumo anual</h3><p>Quadros rápidos com totais históricos e atingimento.</p></div><span class=viz-tag>Visão gerencial</span></div><div class=hist-cards id=execHistoryCards></div></div>
+</div>
+<div class=viz-panel style="margin-bottom:14px"><div class=viz-head><div><h3>Operacional por bateladas finalizadas</h3><p>Números gerados automaticamente a partir das bateladas marcadas como finalizadas dentro do sistema.</p></div><span class=viz-tag>Automático</span></div><div class=toolbar><label>Ano <select id=prodYear></select></label><span class=compact-note>Use esta área para conferir o histórico operacional registrado no próprio PCP Visual.</span></div><div class="op-mini-grid" style="margin-top:10px"><div class=op-mini><small>Produção do ano</small><b id=prodYearKg>0 kg</b></div><div class=op-mini><small>Bateladas finalizadas</small><b id=prodBatchCount>0</b></div><div class=op-mini><small>Meses com produção</small><b id=prodActiveMonths>0</b></div><div class=op-mini><small>Média por mês ativo</small><b id=prodAvgMonth>0 kg</b></div><div class=op-mini><small>Bombonas consumidas</small><b id=prodBombTotal>0</b></div><div class=op-mini><small>Caixas 5L consumidas</small><b id=prodBoxTotal>0</b></div></div><div class="viz-panel" style="margin-top:14px"><div class=viz-head><div><h3>Produção operacional mês a mês</h3><p>Kg operacionais padrão das bateladas finalizadas.</p></div><span class=viz-tag>Histórico interno</span></div><div id=prodChart class=production-months></div></div><div class=tablewrap style="margin-top:14px"><table><thead><tr><th>Mês</th><th>Kg</th><th>Bateladas</th><th>MTO kg</th><th>MTS kg</th><th>Bombonas 5L</th><th>Caixas 5L</th><th>20L</th><th>50L</th><th>200L</th></tr></thead><tbody id=prodBody></tbody></table></div></div>
+</section>
+
+<section id=importacoes class=panel><div class=hero><h2>Importações CIGAM</h2><p>Selecione o PDF Relação de Pedido/Material. Cada importação fica registrada.</p></div>
+<div class="box dashbox"><h3>Importar novo relatório</h3><div class=notice>O PDF é processado no navegador. Esta versão precisa de internet para carregar o leitor PDF.js, mas não envia o seu PDF para um servidor.</div><label class="filelabel primary">Selecionar PDF CIGAM<input type=file id=pdf accept="application/pdf"></label> <span id=msg class=muted></span></div>
+<div class=cards><div class=card><small>Relatórios importados</small><b id=rc>0</b></div><div class=card><small>Atualizados na última</small><b id=lu>0</b></div><div class=card><small>Revisar na última</small><b id=lr>0</b></div><div class=card><small>Ignorados na última</small><b id=li>0</b></div><div class=card><small>Terceirizados encerrados</small><b id=lt>0</b></div></div>
+<div class=box><h3>Histórico de importações</h3><div id=hlist class=muted>Nenhum relatório importado ainda.</div></div><div id=rbox class=box style="display:none"><h3>Itens novos / revisar</h3><div id=rlist></div></div><div id=ibox class=box style="display:none"><h3>Itens ignorados</h3><div id=ilist></div></div></section>
+
+</div></main><dialog id=batchDlg class=batch-dialog><div class=mh><button class=close id=batchClose>Fechar</button><b id=batchTitle>Nova batelada</b></div><div class=mb>
+<p class=batch-create-help><b>O peso desta batelada é sempre escolhido por você.</b> O padrão do produto/tanque é apenas uma referência visual e nunca substitui o valor informado aqui. Ex.: se hoje serão feitos 2.850 kg, informe 2.850 kg e o sistema usará exatamente esse valor.</p>
+<div class=batch-quick-grid>
+<label>Produto<select id=batchProduct></select></label>
+<label>Data planejada<input id=batchDate type=date></label>
+<label>Tanque<select id=batchTank></select></label>
+<label class=v44-kg-main>Kg deste tanque/batelada<input id=batchKg type=number step=any min=0 placeholder="Ex.: 2850"></label>
+<label>Lote<input id=batchLot placeholder="Lote / identificação"></label>
+</div>
+<details class=batch-advanced>
+<summary>Opções avançadas</summary>
+<div class=batch-advanced-grid>
+<label>Densidade (kg/L)<input id=batchDensity type=number step=0.001 min=0 placeholder="Automática quando cadastrada"></label>
+<label>Situação<select id=batchStatus><option>Rascunho</option><option>Programada</option><option>Em produção</option><option>Finalizada</option></select></label>
+<label>Etapa<select id=batchStage><option>Em Fila</option><option>Produção</option><option>Envase</option><option>Apontamento</option></select></label>
+<label>S&amp;OP<select id=batchSop><option value=AUTO>Automático MTO/MTS</option><option>MTO</option><option>MTS</option><option>BO</option></select></label>
+<label>Prioridade<select id=batchPriority><option>Normal</option><option>Média</option><option>Alta</option><option>Urgente</option></select></label>
+<label class=wide>Observação<textarea id=batchObs placeholder="Ex.: antecipar pedido, completar tanque, ajuste comercial..."></textarea></label>
+</div>
+</details>
+<div class=tank-kpis>
+<div class=tank-kpi><small>Kg calculados pelas unidades</small><b id=batchCalcKg>0 kg</b><div id=batchDensityMsg class=muted></div></div>
+<div class=tank-kpi><small>Peso oficial desta batelada</small><b id=batchTankKg>—</b><div id=batchTankMeta class=muted></div></div>
+<div class=tank-kpi><small>Diferença: produção definida × embalagens</small><b id=batchRemainKg>—</b><div id=batchTankAlert></div></div>
+<div class=tank-kpi><small>Embalagens cobrem da batelada</small><b id=batchTankPct>—</b><div class=tank-meter><span id=batchTankMeter style="width:0%"></span></div></div>
+</div>
+<div class=toolbar><button id=batchFill class=primary>Preencher saldo do PMP mensal</button></div>
+<div class=notice style="margin-bottom:10px">As embalagens continuam sendo convertidas por <b>Quantidade × Densidade × Litragem</b>. Porém, o <b>peso oficial da produção será o valor digitado em “Kg deste tanque/batelada”</b>. Esse valor alimenta o MRP, a Programação Semanal, o Dashboard e os indicadores de produção. Assim, uma batelada fora do padrão, como <b>2.850 kg</b>, será contabilizada exatamente como 2.850 kg. <b>Amostra 150ML está disponível para todos os produtos e é apenas uma apresentação da batelada:</b> só pode ser salva junto com quantidade de uma apresentação principal do mesmo produto e com tanque selecionado. Quando surgir pedido no CIGAM, o cadastro/código da amostra será incorporado automaticamente.</div>
+<div class=tablewrap><table><thead><tr><th>Apresentação</th><th>Saldo PMP mensal</th><th>Programar MTO</th><th>Programar MTS</th><th>Total</th><th>Kg</th><th>Embalagem</th><th>Caixa 5L</th></tr></thead><tbody id=batchDistBody></tbody></table></div>
+<div style="margin-top:14px;display:flex;justify-content:flex-end"><button id=batchSave class=primary>Salvar batelada</button></div>
+</div></dialog>
+<dialog id=dlg><div class=mh><button class=close id=close>Fechar</button><b id=mt></b></div><div class=mb><div class=grid id=mg></div>
+<div class=editsec><h4>Editar cadastro e estoque do item</h4><div class=editrow>
+<label>Área / Linha<input id=mArea list=areaOptions placeholder="Ex.: ANVISA, MAPA VETERINÁRIO, CROP"></label>
+<datalist id=areaOptions></datalist>
+<label>Estoque de Referência<input id=mRef type=number step=any min=0></label>
+<label>Ponto de Atenção<input id=mAtt type=number step=any min=0></label>
+<label>Tipo de Produto<select id=mTipo><option>Próprio</option><option>Terceirizado</option></select></label>
+<label>Estoque atual corrigido<input id=mEstoqueManual type=number step=any placeholder="Valor real conferido no CIGAM"></label>
+<label>Motivo do ajuste<input id=mEstoqueMotivo placeholder="Ex.: pedido cancelado"></label>
+</div>
+<div class=hint><b>Área / Linha:</b> pode ser alterada manualmente e passa a organizar Dashboard, Estoque, PMP e bateladas. <b>Ajuste de estoque:</b> use somente quando o relatório não refletir mais a situação real. O próximo relatório CIGAM importado volta a ser a fonte principal e substitui esse ajuste.</div>
+<button id=saveParam class=saveparam>Salvar alterações</button></div>
+<div class=chartbox><div class=charthead><div><h4>Evolução do estoque</h4><div class=muted id=chartSub>Histórico de importações do produto</div></div><div class=chartlegend><span><i class=legenddot></i>Estoque</span><span><i class="legenddot ref"></i>Referência</span><span><i class="legenddot att"></i>Atenção</span></div></div><div id=stockChart></div></div>
+<h4>Histórico do item</h4><div id=mhist class=muted>Sem histórico.</div></div></dialog>
+<dialog id=formulaDlg class=batch-dialog><div class=mh><button class=close id=formulaClose>Fechar</button><b id=formulaTitle>Fórmula</b></div><div class=mb>
+<div id=formulaDetail></div>
+</div></dialog>
+
+  <!-- Modal Ficha Completa de Engenharia do Produto (V105) -->
+<dialog id="v105ProductSheet">
+  <div class="v105-sheet-head"><div><h3 id="v105SheetTitle">Ficha de Engenharia</h3><p id="v105SheetSub"></p></div><button id="v105SheetClose">Fechar</button></div>
+  <div class="v105-sheet-body" id="v105SheetBody"></div>
+</dialog>
+
+  <!-- ====================================================================
+       Camada de Dados e Seeds (Carregamento Sincrono Compativel com file://)
+       ==================================================================== -->
+  <script src="src/data/logo-base64.js"></script>
+  <script src="src/data/packaging-seed.js"></script>
+  <script src="src/data/tanks-density-seed.js"></script>
+  <script src="src/data/formulas-seed.js"></script>
+  <script src="src/data/materials-seed.js"></script>
+  <script src="src/data/products-seed.js"></script>
+  <script src="src/data/operational-seed.js"></script>
+
+  <!-- ====================================================================
+       Nucleo da Aplicacao e Modulos Principais
+       ==================================================================== -->
+  <script src="src/js/core/state.js"></script>
+  <script src="src/js/modules/pendencias.js"></script>
+  <script src="src/js/modules/pmp-batches.js"></script>
+  <script src="src/js/modules/engineering-materials.js"></script>
+  <script src="src/js/modules/mrp-compras.js"></script>
+  <script src="src/js/modules/weekly-bombonas.js"></script>
+  <script src="src/js/modules/production-dashboard.js"></script>
+  <script src="src/js/modules/stock-import-init.js"></script>
+
+  <!-- ====================================================================
+       Camadas de Evolucao e Regras de Negocio Especificas (V41 a V106)
+       ==================================================================== -->
+  <script src="src/js/patches/v41-v52-batches-thirdparty.js"></script>
+  <script src="src/js/patches/v55-v69-weekly-overrides-mrp.js"></script>
+  <script src="src/js/patches/v71-v89-samples-export-fixes.js"></script>
+  <script src="src/js/patches/v90-mp-policy.js"></script>
+  <script src="src/js/patches/v99-v106-packaging-sheets-aliases.js"></script>
+</body>
+</html>

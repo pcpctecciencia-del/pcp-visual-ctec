@@ -1,0 +1,22 @@
+# Arquivos gerados pelo build unificado (opcional manter fora do controle de versao)
+dist/
+
+# Relatorios operacionais / PDFs locais do CIGAM (caso copiados para dentro do repositorio)
+relatorios/
+*.pdf
+*.xlsx
+*.csv
+
+# Arquivos temporarios do sistema operacional e editores
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+*.bak
+*.swp
+*~
+
+# Ambientes e dependencias locais (caso adicionados futuramente)
+node_modules/
+.vscode/
+.idea/

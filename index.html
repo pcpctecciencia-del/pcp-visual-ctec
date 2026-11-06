@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>PCP Visual C-TEC - V106 Unificado</title>
 
-  <!-- Bibliotecas Externas (PDF.js, html2canvas, SheetJS/XLSX) -->
+  <!-- Bibliotecas Externas (PDF.js, html2canvas, SheetJS/XLSX, Supabase Realtime) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
 
   <!-- Folhas de Estilo Modulares -->
   <link rel="stylesheet" href="src/styles/main.css">
@@ -321,5 +322,10 @@
   <script src="src/js/patches/v71-v89-samples-export-fixes.js"></script>
   <script src="src/js/patches/v90-mp-policy.js"></script>
   <script src="src/js/patches/v99-v106-packaging-sheets-aliases.js"></script>
+
+  <!-- ====================================================================
+       Sincronizacao em Nuvem Multi-Usuario (Supabase PostgreSQL + Realtime)
+       ==================================================================== -->
+  <script src="src/js/core/supabase-sync.js"></script>
 </body>
 </html>

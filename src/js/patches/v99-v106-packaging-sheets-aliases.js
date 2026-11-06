@@ -13,7 +13,7 @@ try{V99_PACK=JSON.parse(localStorage.getItem(V99_PACK_KEY)||'{}')||{}}catch(e){V
 function v99Key(product){return norm(String(product||''))}
 function v99ApKey(ap){const a=apInfo(ap);return a.kind==='L'&&[5,20,50,200].includes(Number(a.liters))?String(Number(a.liters))+'L':''}
 function v99Custom(product,ap){const pk=v99Key(product),ak=v99ApKey(ap);return ak?(V99_PACK[pk]?.[ak]||null):null}
-function v99Save(){localStorage.setItem(V99_PACK_KEY,JSON.stringify(V99_PACK));try{renderBombonas()}catch(e){}try{renderWeekly()}catch(e){}}
+function v99Save(){localStorage.setItem(V99_PACK_KEY,JSON.stringify(V99_PACK));try{renderBombonas()}catch(e){}try{renderWeekly()}catch(e){}try{if(typeof save==='function')save()}catch(e){}}
 function v99Set(product,ap,data){const pk=v99Key(product),ak=v99ApKey(ap);if(!ak)return;if(!V99_PACK[pk])V99_PACK[pk]={};if(!data){delete V99_PACK[pk][ak];if(!Object.keys(V99_PACK[pk]).length)delete V99_PACK[pk]}else V99_PACK[pk][ak]=data;v99Save()}
 const v99PackagingSpecPrev=packagingSpec;
 packagingSpec=function(product,ap){const c=v99Custom(product,ap);if(c){if(c.none)return null;if(c.color)return{size:apInfo(ap).liters,color:c.color,model:c.model||'C',brand:'CADASTRO MANUAL',note:'Cadastro manual V99'}}return v99PackagingSpecPrev(product,ap)};

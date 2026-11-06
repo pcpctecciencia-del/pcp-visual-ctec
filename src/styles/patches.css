@@ -27,7 +27,7 @@
 @media(max-width:700px){.v41-pmp-kpis,.v41-week-kpis,.v41-bo-kpis,.v41-access,.v41-mp-summary,.v41-order-list{grid-template-columns:1fr}.v41-batch-row{grid-template-columns:1fr 1fr}.v41-batch-row .namecell,.v41-batch-row .actions{grid-column:1/-1}.v41-batch-row .actions{justify-content:flex-start}}
 
 /* --- Style Block [] --- */
-body{font-family:Arial;padding:18px;color:#111}table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:11px}th,td{border:1px solid #ddd;padding:6px}th{background:#eee}
+/* print-popup style removed */
 
 /* --- Style Block [id="v42-css"] --- */
 .badge.terceiro{background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd}
@@ -173,10 +173,10 @@ body{font-family:Arial;padding:18px;color:#111}table{width:100%;border-collapse:
 #semanal.v55-exporting #weeklyDays .v41-stage{width:18px!important;height:18px!important;min-width:18px!important;font-size:9px!important}
 
 /* --- Style Block [] --- */
-body{font-family:Arial;padding:18px;color:#111}table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:11px}th,td{border:1px solid #ddd;padding:5px}th{background:#eee}
+/* print-popup style removed */
 
 /* --- Style Block [] --- */
-body{font-family:Arial;padding:18px;color:#111}table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:11px}th,td{border:1px solid #ddd;padding:5px}th{background:#eee}
+/* print-popup style removed */
 
 /* --- Style Block [id="v60-css"] --- */
 #mArea{min-width:230px}
@@ -352,3 +352,349 @@ body:not(.print-week-share):not(.print-daily) .wrap>section.panel.active{display
 .v105-status{display:inline-flex;padding:3px 7px;border-radius:999px;font-size:9px;font-weight:900;white-space:nowrap}.v105-ok{background:#dcfce7;color:#166534}.v105-miss{background:#fee2e2;color:#991b1b}.v105-info{background:#e0e7ff;color:#3730a3}.v105-na{background:#f3f4f6;color:#475467}
 .v105-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.v105-note{padding:10px 12px;font-size:11px;color:#667085}.v105-actions{display:flex;gap:7px;flex-wrap:wrap}.v105-actions button{border:1px solid #cfd6de;background:#fff;border-radius:8px;padding:6px 9px;font-weight:800;cursor:pointer;font-size:11px}.v105-actions button.primary{background:#b91c1c;color:#fff;border-color:#b91c1c}
 @media(max-width:980px){.v105-kpis{grid-template-columns:repeat(3,1fr)}.v105-two{grid-template-columns:1fr}}@media(max-width:620px){.v105-kpis{grid-template-columns:1fr 1fr}}
+
+/* ==========================================================================
+   V107 — Otimizacao Visual e Didatica Completa do Dashboard de Producao
+   ========================================================================== */
+#producao .prod-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(240px, 1fr)) !important;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+#producao .prod-kpi {
+  background: #ffffff;
+  border: 1px solid #dce2ea;
+  border-radius: 14px;
+  padding: 15px 18px;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+#producao .prod-kpi::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: #2563eb;
+}
+#producao .prod-kpi.kpi-sales::before { background: #ea580c; }
+#producao .prod-kpi.kpi-balance::before { background: #0d9488; }
+#producao .prod-kpi.kpi-yoy::before { background: #7c3aed; }
+#producao .prod-kpi.kpi-daily::before { background: #0284c7; }
+#producao .prod-kpi.kpi-pace::before { background: #d71920; }
+
+#producao .prod-kpi-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+#producao .prod-kpi small {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #475569;
+  margin: 0;
+}
+#producao .prod-kpi-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+#producao .prod-kpi-badge.good { background: #dcfce7; color: #166534; }
+#producao .prod-kpi-badge.warn { background: #ffedd5; color: #9a3412; }
+#producao .prod-kpi-badge.bad { background: #fee2e2; color: #991b1b; }
+#producao .prod-kpi-badge.info { background: #dbeafe; color: #1e40af; }
+
+#producao .prod-kpi b {
+  font-size: 26px !important;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 6px 0 4px;
+  font-variant-numeric: tabular-nums;
+}
+#producao .prod-kpi-meter {
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 6px 0;
+}
+#producao .prod-kpi-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
+  transition: width 0.25s ease;
+}
+#producao .prod-kpi.kpi-sales .prod-kpi-meter > span {
+  background: linear-gradient(90deg, #ea580c, #f97316);
+}
+#producao .prod-kpi span.kpi-sub {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+  line-height: 1.35;
+}
+
+/* Painel de Metas e Tabela Mensal Interativa */
+#producao .prod-edit-panel {
+  background: #ffffff;
+  border: 1px solid #dce2ea;
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+}
+#producao .prod-targets-bar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr)) minmax(240px, 1.5fr) auto;
+  gap: 12px;
+  align-items: end;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+#producao .prod-targets-bar label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+#producao .prod-targets-bar input {
+  width: 100%;
+  padding: 9px 11px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-variant-numeric: tabular-nums;
+}
+#producao .prod-targets-bar input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* Tabela Mensal Didatica */
+#producao .prod-month-edit {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+}
+#producao .prod-month-edit thead th {
+  background: #1e293b !important;
+  color: #ffffff !important;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 11px 12px;
+  border-bottom: 2px solid #0f172a;
+  text-align: center;
+  white-space: nowrap;
+}
+#producao .prod-month-edit thead th:first-child {
+  text-align: left;
+  padding-left: 14px;
+}
+#producao .prod-month-edit thead th small {
+  display: block;
+  font-size: 9px;
+  font-weight: 500;
+  color: #94a3b8;
+  text-transform: none;
+  margin-top: 2px;
+}
+#producao .prod-month-edit tbody td {
+  padding: 8px 10px;
+  font-size: 13px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: center;
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+#producao .prod-month-edit tbody td:first-child {
+  text-align: left;
+  padding-left: 14px;
+  white-space: nowrap;
+}
+#producao .prod-month-edit tbody tr.month-empty td {
+  opacity: 0.78;
+}
+#producao .prod-month-status {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+#producao .prod-month-status.done { background: #dcfce7; color: #166534; }
+#producao .prod-month-status.open { background: #f1f5f9; color: #64748b; }
+
+#producao .prod-input-wrap {
+  display: inline-flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0 8px 0 0;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+#producao .prod-input-wrap:focus-within {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+#producao .prod-input-wrap.sales-input:focus-within {
+  border-color: #ea580c;
+  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.14);
+}
+#producao .prod-input-wrap input {
+  width: 92px !important;
+  border: 0 !important;
+  background: transparent !important;
+  padding: 6px 6px 6px 10px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+  text-align: right !important;
+  outline: none !important;
+  font-variant-numeric: tabular-nums;
+}
+#producao .prod-input-wrap.days-input input {
+  width: 58px !important;
+  text-align: center !important;
+}
+#producao .prod-input-unit {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  margin-left: 3px;
+  user-select: none;
+}
+
+#producao .prod-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+#producao .prod-pill.pos { background: #dcfce7; color: #166534; }
+#producao .prod-pill.neg { background: #fee2e2; color: #991b1b; }
+#producao .prod-pill.warn { background: #ffedd5; color: #9a3412; }
+#producao .prod-pill.neutral { background: #f1f5f9; color: #475569; }
+
+#producao .prod-goal-cell {
+  min-width: 120px;
+}
+#producao .prod-goal-mini {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  justify-content: center;
+}
+#producao .prod-goal-bar {
+  width: 68px;
+  height: 7px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+#producao .prod-goal-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #2563eb;
+}
+#producao .prod-goal-bar > span.ok { background: #16a34a; }
+#producao .prod-goal-bar > span.warn { background: #f59e0b; }
+
+#producao .prod-month-edit tfoot tr.prod-foot-total td {
+  background: #1e293b !important;
+  color: #ffffff !important;
+  font-weight: 800;
+  font-size: 13px;
+  padding: 11px 10px;
+  border-top: 2px solid #0f172a;
+}
+#producao .prod-month-edit tfoot tr.prod-foot-avg td {
+  background: #f1f5f9 !important;
+  color: #1e293b !important;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 9px 10px;
+}
+
+/* Graficos Comparativos aprimorados */
+#producao .exec-row-didactic {
+  display: grid;
+  grid-template-columns: 44px minmax(180px, 1fr) 150px 86px;
+  gap: 10px;
+  align-items: center;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #edf2f7;
+}
+#producao .exec-row-didactic:hover {
+  background: #f1f5f9;
+}
+#producao .exec-bar.prod { background: #2563eb !important; height: 10px; }
+#producao .exec-bar.sales { background: #ea580c !important; height: 10px; }
+#producao .exec-bar.prev { background: #94a3b8 !important; height: 10px; }
+
+#producao .exec-summary-table table thead th {
+  background: #1e293b !important;
+  color: #ffffff !important;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 9px 10px;
+  text-align: center;
+}
+#producao .exec-summary-table table thead th:first-child {
+  text-align: left;
+}
+#producao .exec-summary-table table tbody td {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+#producao .exec-summary-table table tbody td:first-child {
+  text-align: left;
+}
+
+@media (max-width: 1150px) {
+  #producao .prod-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  #producao .prod-targets-bar { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 720px) {
+  #producao .prod-kpi-grid { grid-template-columns: 1fr !important; }
+  #producao .prod-targets-bar { grid-template-columns: 1fr; }
+  #producao .exec-row-didactic { grid-template-columns: 40px 1fr 115px; }
+  #producao .exec-row-didactic .exec-delta-col { display: none; }
+}
+

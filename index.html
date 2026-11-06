@@ -210,25 +210,109 @@
 </section>
 
 <section id=producao class=panel>
-<div class=hero><h2>Dashboard de Produção</h2><p>Visão executiva com números simplificados e gráficos de produção e vendas, além do acompanhamento operacional das bateladas finalizadas.</p></div>
-<div class=prod-edit-panel><div class=viz-head><div><h3>Metas e dados editáveis</h3><p>Atualize as metas e os valores mensais de 2026. Os gráficos e indicadores são recalculados automaticamente.</p></div><span class=viz-tag>Editável</span></div><div class=prod-edit-grid><label>Meta anual de vendas (t)<input id=prodGoalSales type=number step=0.01></label><label>Meta anual de produção (t)<input id=prodGoalProduction type=number step=0.01></label><label>Produção base 2025 (t)<input id=prodBaseProduction type=number step=0.01></label><label style="grid-column:1/-1">Observação do dashboard<textarea id=prodDashNote placeholder="Ex.: revisão de meta, previsão comercial, detalhe do mês..."></textarea></label></div><div class=toolbar><button id=prodSaveTargets class=primary>Salvar metas e detalhes</button></div><div class=tablewrap><table class=prod-month-edit><thead><tr><th>Mês</th><th>Produção 2026 (t)</th><th>Vendas 2026 (t)</th><th>Dias úteis</th></tr></thead><tbody id=prodEditBody></tbody></table></div></div>
-<div class="prod-kpi-grid" style="margin-bottom:14px">
-  <div class=prod-kpi><small>Produção 2026</small><b id=execProdYtd>0 t</b><span id=execProdHint>Acumulado do ano</span></div>
-  <div class=prod-kpi><small>Vendas 2026</small><b id=execSalesYtd>0 t</b><span id=execSalesHint>Acumulado do ano</span></div>
-  <div class=prod-kpi><small>Meta de vendas</small><b id=execGoalStatus>0%</b><span id=execGoalHint>0 / 0 t</span></div>
-  <div class=prod-kpi><small>Produção vs 2025</small><b id=execProdVs2025>0%</b><span id=execProdVs2025Hint>Comparativo anual</span></div>
-  <div class=prod-kpi><small>Média dia produção 2026</small><b id=execProdAvg>0 t</b><span id=execProdAvgHint>Média operacional</span></div>
-  <div class=prod-kpi><small>Média dia vendas 2026</small><b id=execSalesAvg>0 t</b><span id=execSalesAvgHint>Média comercial</span></div>
+<div class=hero><h2>Dashboard Executivo de Produção e Vendas</h2><p>Acompanhamento integrado de metas anuais, ritmo diário, balanço entre produção e vendas (2024–2026) e rastreabilidade das bateladas finalizadas.</p></div>
+
+<div class="prod-kpi-grid" id="execKpiGrid">
+  <div class="prod-kpi kpi-prod">
+    <div class="prod-kpi-top"><small>Produção Acumulada 2026</small><span class="prod-kpi-badge info" id="execProdGoalBadge">0% da meta</span></div>
+    <b id=execProdYtd>0 t</b>
+    <div class="prod-kpi-meter"><span id="execProdMeter" style="width:0%"></span></div>
+    <span class="kpi-sub" id=execProdHint>Acumulado do ano</span>
+  </div>
+  <div class="prod-kpi kpi-sales">
+    <div class="prod-kpi-top"><small>Vendas Acumuladas 2026</small><span class="prod-kpi-badge warn" id="execGoalStatus">0%</span></div>
+    <b id=execSalesYtd>0 t</b>
+    <div class="prod-kpi-meter"><span id="execSalesMeter" style="width:0%"></span></div>
+    <span class="kpi-sub" id=execGoalHint>0 / 0 t</span>
+  </div>
+  <div class="prod-kpi kpi-balance">
+    <div class="prod-kpi-top"><small>Balanço Produção − Vendas</small><span class="prod-kpi-badge info" id="execBalanceBadge">Equilíbrio</span></div>
+    <b id="execBalanceYtd">0 t</b>
+    <span class="kpi-sub" id="execSalesHint">Diferença acumulada no ano</span>
+  </div>
+  <div class="prod-kpi kpi-yoy">
+    <div class="prod-kpi-top"><small>Evolução Produção vs 2025</small><span class="prod-kpi-badge info" id="execYoySameBadge">Mesmos meses</span></div>
+    <b id=execProdVs2025>0%</b>
+    <span class="kpi-sub" id=execProdVs2025Hint>Comparativo anual</span>
+  </div>
+  <div class="prod-kpi kpi-daily">
+    <div class="prod-kpi-top"><small>Média Diária (Dia Útil)</small><span class="prod-kpi-badge info" id="execWorkdaysBadge">0 dias úteis</span></div>
+    <div style="display:flex;align-items:baseline;gap:12px;margin:6px 0 4px">
+      <div><small style="font-size:9px;color:#2563eb">PROD/DIA</small><b id=execProdAvg style="font-size:21px!important;margin:0">0 t</b></div>
+      <div style="color:#cbd5e1;font-size:20px">/</div>
+      <div><small style="font-size:9px;color:#ea580c">VENDAS/DIA</small><b id=execSalesAvg style="font-size:21px!important;margin:0">0 t</b></div>
+    </div>
+    <span class="kpi-sub" id=execProdAvgHint>Produtividade média nos meses ativos</span>
+    <span id=execSalesAvgHint style="display:none"></span>
+  </div>
+  <div class="prod-kpi kpi-pace">
+    <div class="prod-kpi-top"><small>Ritmo Necessário p/ Meta</small><span class="prod-kpi-badge warn" id="execRemainMonthsBadge">Meses restantes</span></div>
+    <b id="execPaceNeeded">0 t/mês</b>
+    <span class="kpi-sub" id="execPaceHint">Necessidade mensal até Dezembro</span>
+  </div>
 </div>
-<div class="prod-exec-grid" style="margin-bottom:14px">
-  <div class=viz-panel><div class=viz-head><div><h3>Produção x Vendas 2026</h3><p>Leitura simples dos meses com valores de produção e vendas.</p></div><span class=viz-tag>2026</span></div><div id=execProdSalesChart class="exec-bars dual"></div><div class=exec-legend><span class=lg-prod>Produção</span><span class=lg-sales>Vendas</span></div></div>
-  <div class=viz-panel><div class=viz-head><div><h3>Produção 2025 x 2026</h3><p>Comparativo mensal do histórico produtivo.</p></div><span class=viz-tag>Comparativo</span></div><div id=execProdCompareChart class="exec-bars dual"></div><div class=exec-legend><span class=lg-prev>2025</span><span class=lg-prod>2026</span></div></div>
+
+<div class=prod-edit-panel>
+  <div class=viz-head>
+    <div>
+      <h3>Planejamento Mensal, Metas e Lançamento de Dados (2026)</h3>
+      <p>Altere qualquer valor de Produção, Vendas ou Dias Úteis diretamente na tabela abaixo. Todos os indicadores, saldos, médias diárias e gráficos são recalculados e salvos na nuvem na hora.</p>
+    </div>
+    <span class=viz-tag>Edição Direta • Salva na Nuvem</span>
+  </div>
+  <div class="prod-targets-bar">
+    <label>Meta anual de produção 2026 (t)<input id=prodGoalProduction type=number step=0.01></label>
+    <label>Meta anual de vendas 2026 (t)<input id=prodGoalSales type=number step=0.01></label>
+    <label>Produção anual base 2025 (t)<input id=prodBaseProduction type=number step=0.01></label>
+    <label>Observação / Premissa do Dashboard<input id=prodDashNote type=text placeholder="Ex.: revisão de meta, previsão comercial, sazonalidade..."></label>
+    <button id=prodSaveTargets class=primary style="height:38px;padding:0 16px;border-radius:8px;font-weight:700;cursor:pointer">Salvar metas</button>
+  </div>
+  <div class=tablewrap>
+    <table class=prod-month-edit>
+      <thead>
+        <tr>
+          <th>Mês<small>Status do período</small></th>
+          <th>Prod. 2025<small>Referência (t)</small></th>
+          <th>Produção 2026<small>Realizado / Prev. (t)</small></th>
+          <th>Evolução Prod.<small>2026 vs 2025</small></th>
+          <th>Vendas 2026<small>Faturado / Prev. (t)</small></th>
+          <th>Saldo no Mês<small>Produção − Vendas</small></th>
+          <th>Dias Úteis<small>Calendário</small></th>
+          <th>Ritmo Diário<small>Prod. / Vendas por dia</small></th>
+          <th>Meta Mensal Prod.<small>Atingimento da cota</small></th>
+        </tr>
+      </thead>
+      <tbody id=prodEditBody></tbody>
+      <tfoot id=prodEditFoot></tfoot>
+    </table>
+  </div>
 </div>
-<div class="prod-split" style="margin-bottom:14px">
-  <div class="viz-panel exec-summary-table"><div class=viz-head><div><h3>Resumo mensal simplificado</h3><p>Produção, vendas e variação de vendas sobre produção em 2026.</p></div><span class=viz-tag>Mensal</span></div><div id=execSummaryTable></div></div>
-  <div class=viz-panel style="min-width:0;overflow:hidden"><div class=viz-head><div><h3>Resumo anual</h3><p>Quadros rápidos com totais históricos e atingimento.</p></div><span class=viz-tag>Visão gerencial</span></div><div class=hist-cards id=execHistoryCards></div></div>
+
+<div class="prod-exec-grid" style="margin-bottom:16px">
+  <div class=viz-panel>
+    <div class=viz-head><div><h3>Produção × Vendas 2026 (Mês a Mês)</h3><p>Comparativo visual direto entre volume fabricado, volume vendido e saldo líquido mensal.</p></div><span class=viz-tag>2026 • Toneladas</span></div>
+    <div id=execProdSalesChart class="exec-bars dual"></div>
+    <div class=exec-legend><span class=lg-prod>Produção 2026 (t)</span><span class=lg-sales>Vendas 2026 (t)</span></div>
+  </div>
+  <div class=viz-panel>
+    <div class=viz-head><div><h3>Produção 2025 × 2026 (Histórico Mensal)</h3><p>Comparação de desempenho produtivo de cada mês de 2026 contra o mesmo mês de 2025.</p></div><span class=viz-tag>YoY • Toneladas</span></div>
+    <div id=execProdCompareChart class="exec-bars dual"></div>
+    <div class=exec-legend><span class=lg-prev>Produção 2025 (t)</span><span class=lg-prod>Produção 2026 (t)</span></div>
+  </div>
 </div>
-<div class=viz-panel style="margin-bottom:14px"><div class=viz-head><div><h3>Operacional por bateladas finalizadas</h3><p>Números gerados automaticamente a partir das bateladas marcadas como finalizadas dentro do sistema.</p></div><span class=viz-tag>Automático</span></div><div class=toolbar><label>Ano <select id=prodYear></select></label><span class=compact-note>Use esta área para conferir o histórico operacional registrado no próprio PCP Visual.</span></div><div class="op-mini-grid" style="margin-top:10px"><div class=op-mini><small>Produção do ano</small><b id=prodYearKg>0 kg</b></div><div class=op-mini><small>Bateladas finalizadas</small><b id=prodBatchCount>0</b></div><div class=op-mini><small>Meses com produção</small><b id=prodActiveMonths>0</b></div><div class=op-mini><small>Média por mês ativo</small><b id=prodAvgMonth>0 kg</b></div><div class=op-mini><small>Bombonas consumidas</small><b id=prodBombTotal>0</b></div><div class=op-mini><small>Caixas 5L consumidas</small><b id=prodBoxTotal>0</b></div></div><div class="viz-panel" style="margin-top:14px"><div class=viz-head><div><h3>Produção operacional mês a mês</h3><p>Kg operacionais padrão das bateladas finalizadas.</p></div><span class=viz-tag>Histórico interno</span></div><div id=prodChart class=production-months></div></div><div class=tablewrap style="margin-top:14px"><table><thead><tr><th>Mês</th><th>Kg</th><th>Bateladas</th><th>MTO kg</th><th>MTS kg</th><th>Bombonas 5L</th><th>Caixas 5L</th><th>20L</th><th>50L</th><th>200L</th></tr></thead><tbody id=prodBody></tbody></table></div></div>
+
+<div class="prod-split" style="margin-bottom:16px">
+  <div class="viz-panel exec-summary-table">
+    <div class=viz-head><div><h3>Consolidação por Trimestre e Acumulado</h3><p>Visão gerencial agrupada por trimestre (1º ao 4º Tri) para análise de sazonalidade e fechamento.</p></div><span class=viz-tag>Visão Trimestral</span></div>
+    <div id=execSummaryTable></div>
+  </div>
+  <div class=viz-panel style="min-width:0;overflow:hidden">
+    <div class=viz-head><div><h3>Comparativo Trienal (2024 • 2025 • 2026)</h3><p>Evolução histórica de produção, vendas, médias e metas da C-TEC.</p></div><span class=viz-tag>Série Histórica</span></div>
+    <div class=hist-cards id=execHistoryCards></div>
+  </div>
+</div>
+
+<div class=viz-panel style="margin-bottom:14px"><div class=viz-head><div><h3>Rastreabilidade Operacional — Bateladas Finalizadas no PCP Visual</h3><p>Indicadores calculados automaticamente a partir das bateladas apontadas/finalizadas dentro da Programação Semanal.</p></div><span class=viz-tag>Automático • Bateladas</span></div><div class=toolbar><label>Ano <select id=prodYear></select></label><span class=compact-note>Estes dados refletem o apontamento operacional de chão de fábrica registrado nas bateladas do sistema.</span></div><div class="op-mini-grid" style="margin-top:10px"><div class=op-mini><small>Produção apontada no ano</small><b id=prodYearKg>0 kg</b></div><div class=op-mini><small>Bateladas finalizadas</small><b id=prodBatchCount>0</b></div><div class=op-mini><small>Meses com apontamento</small><b id=prodActiveMonths>0</b></div><div class=op-mini><small>Média por mês ativo</small><b id=prodAvgMonth>0 kg</b></div><div class=op-mini><small>Bombonas consumidas</small><b id=prodBombTotal>0</b></div><div class=op-mini><small>Caixas 5L consumidas</small><b id=prodBoxTotal>0</b></div></div><div class="viz-panel" style="margin-top:14px"><div class=viz-head><div><h3>Volume apontado mês a mês (Bateladas)</h3><p>Peso operacional efetivo das bateladas concluídas em cada mês.</p></div><span class=viz-tag>Histórico interno</span></div><div id=prodChart class=production-months></div></div><div class=tablewrap style="margin-top:14px"><table><thead><tr><th>Mês</th><th>Volume Total (kg)</th><th>Bateladas</th><th>MTO (kg)</th><th>MTS (kg)</th><th>Bombonas 5L</th><th>Caixas 5L</th><th>Bombonas 20L</th><th>Bombonas 50L</th><th>Bombonas 200L</th></tr></thead><tbody id=prodBody></tbody><tfoot id=prodFoot></tfoot></table></div></div>
 </section>
 
 <section id=importacoes class=panel><div class=hero><h2>Importações CIGAM</h2><p>Selecione o PDF Relação de Pedido/Material. Cada importação fica registrada.</p></div>

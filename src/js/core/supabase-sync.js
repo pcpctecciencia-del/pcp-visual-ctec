@@ -154,12 +154,7 @@ function applyRemoteRow(row, sourceLabel = 'nuvem') {
     try { if (typeof window.v63ApplyAll === 'function') window.v63ApplyAll(); } catch (e) {}
 
     // Persistir localmente sem disparar novo push
-    localStorage.setItem(KEY, JSON.stringify(D));
-    localStorage.setItem(HKEY, JSON.stringify(H));
-    localStorage.setItem(MKEY, JSON.stringify(MPS));
-    localStorage.setItem(BKEY, JSON.stringify(BATCH_REFS));
-    localStorage.setItem(MPKEY, JSON.stringify(MP));
-    localStorage.setItem(OKEY, JSON.stringify(OPS));
+    origSave();
 
     localRevision = Number(row.revision || 1);
     localStorage.setItem(REV_KEY, String(localRevision));

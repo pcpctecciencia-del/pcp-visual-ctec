@@ -17,7 +17,16 @@ let isApplyingRemote = false;
 let isPushing = false;
 let pendingPush = false;
 let pushTimer = null;
+let initialPullDone = false; // Bloqueio: nunca envia para nuvem antes de confirmar e carregar o estado atual
 let localRevision = Number(localStorage.getItem(REV_KEY) || 0);
+
+// Seguranca absoluta: nunca sincronizar se estiver rodando localmente (file://), em testes automatizados (webdriver/headless) ou sem protocolo web
+function isSafeEnvironment() {
+  if (typeof window === 'undefined' || !window.location) return false;
+  if (window.location.protocol === 'file:') return false;
+  if (navigator.webdriver) return false;
+  return true;
+}
 
 function getUserName() {
   return (localStorage.getItem(USER_KEY) || 'PCP C-TEC').trim() || 'PCP C-TEC';
@@ -202,10 +211,15 @@ function applyRemoteRow(row, sourceLabel = 'nuvem') {
 
 async function pullFromCloud(force = false) {
   try {
+    if (!isSafeEnvironment()) {
+      setCloudStatus('offline', 'Modo Local / Testes (Nuvem Desconectada)');
+      return;
+    }
     if (!force && isDialogEditing()) return;
     setCloudStatus('syncing', 'Sincronizando nuvem...');
     const rows = await restFetch(`pcp_cloud_state?id=eq.${STATE_ROW_ID}&select=*`);
     if (!Array.isArray(rows) || !rows.length) {
+      initialPullDone = true;
       await pushToCloudNow('Carga Inicial');
       return;
     }
@@ -217,6 +231,7 @@ async function pullFromCloud(force = false) {
       const when = formatShortTime(row.updated_at);
       setCloudStatus('online', `Nuvem On • Rev #${localRevision}${when ? ' (' + when + ')' : ''}`);
     }
+    initialPullDone = true;
   } catch (err) {
     console.warn('Falha ao buscar estado na nuvem:', err);
     setCloudStatus('error', 'Modo Local (sem conexão com nuvem)');
@@ -224,7 +239,7 @@ async function pullFromCloud(force = false) {
 }
 
 async function pushToCloudNow(reasonLabel) {
-  if (isApplyingRemote) return;
+  if (!isSafeEnvironment() || !initialPullDone || isApplyingRemote) return;
   if (isPushing) {
     pendingPush = true;
     return;
@@ -285,7 +300,7 @@ async function pushToCloudNow(reasonLabel) {
 }
 
 function scheduleCloudPush() {
-  if (isApplyingRemote) return;
+  if (!isSafeEnvironment() || !initialPullDone || isApplyingRemote) return;
   if (pushTimer) clearTimeout(pushTimer);
   setCloudStatus('syncing', 'Alteração pendente para nuvem...');
   pushTimer = setTimeout(() => {

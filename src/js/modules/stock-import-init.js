@@ -2,8 +2,239 @@
  * Modulo de Controle de Estoque, Leitor PDF de Pedidos/Material CIGAM, Backup e Inicializacao
  */
 function panel(id){document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===id));document.querySelectorAll('.nav button[data-p]').forEach(b=>b.classList.toggle('active',b.dataset.p===id));if(id==='importacoes')rh();if(id==='pendencias')renderPendencias();if(id==='mps')renderMPS();if(id==='semanal')renderWeekly();if(id==='bombonas')renderBombonas();if(id==='producao')renderProduction();if(id==='engenharia')renderEngineering();if(id==='materiais')renderMaterials();if(id==='mrp')renderMRP()}
-function render(){let q=($('q')?.value||'').toUpperCase(),l=$('linha')?.value||'',s=$('st')?.value||'',f=vis().filter(x=>(!q||`${x.produto} ${x.item} ${x.cod}`.toUpperCase().includes(q))&&(!l||x.linha===l)&&(!s||stat(x)===s));if($('body')){$('body').innerHTML=f.map(x=>`<tr data-i="${encodeURIComponent(x.item)}"><td>${x.linha||''}</td><td>${x.produto||''}</td><td class="${isThird(x)?'tipo-terc':''}">${x.tipo||'Próprio'}</td><td>${x.ap||''}</td><td>${x.cod||''}</td><td>${x.ref??''}</td><td>${x.att??''}</td><td>${x.est??''}</td><td>${badge(stat(x))}</td><td>${x.atual||''}</td></tr>`).join('');$('body').querySelectorAll('tr').forEach(t=>t.onclick=()=>openItem(decodeURIComponent(t.dataset.i)))}if($('ct'))$('ct').textContent=f.length;if($('cn'))$('cn').textContent=f.filter(x=>stat(x)==='NORMAL').length;if($('ca'))$('ca').textContent=f.filter(x=>stat(x)==='ABAIXO DA REFERÊNCIA').length;if($('cat'))$('cat').textContent=f.filter(x=>stat(x)==='ATENÇÃO').length;if($('cc'))$('cc').textContent=f.filter(x=>stat(x)==='CRÍTICO').length;let q2=($('q2')?.value||'').toUpperCase(),t2=$('tipo2')?.value||'',sl=$('stockLine')?.value||'',ss=$('stockStatus')?.value||'',f2=D.filter(x=>(!q2||`${x.produto} ${x.item} ${x.cod}`.toUpperCase().includes(q2))&&(!t2||(x.tipo||'Próprio')===t2)&&(!sl||x.linha===sl)&&(!ss||stat(x)===ss));if($('body2')){$('body2').innerHTML=f2.map(x=>`<tr data-i="${encodeURIComponent(x.item)}"><td>${x.linha||''}</td><td><b>${x.produto||''}</b></td><td>${x.ap||''}</td><td class="${isThird(x)?'tipo-terc':''}">${x.tipo||'Próprio'}</td><td>${x.cod||''}</td><td>${x.ref??''}</td><td>${x.att??''}</td><td>${x.est??''}</td><td>${badge(stat(x))}</td><td>${x.atual||''}</td></tr>`).join('');$('body2').querySelectorAll('tr').forEach(t=>t.onclick=()=>openItem(decodeURIComponent(t.dataset.i)))}if($('stockTotal'))$('stockTotal').textContent=f2.length;if($('stockWithValue'))$('stockWithValue').textContent=f2.filter(x=>N(x.est)!==null).length;if($('stockCritical'))$('stockCritical').textContent=f2.filter(x=>stat(x)==='CRÍTICO').length;if($('stockAttention'))$('stockAttention').textContent=f2.filter(x=>stat(x)==='ATENÇÃO').length;if($('stockDemand'))$('stockDemand').textContent=f2.filter(x=>stat(x)==='SOB DEMANDA').length;try{renderDashboardCharts(f)}catch(e){console.error(e)}try{rh()}catch(e){console.error(e)}try{renderPendencias()}catch(e){console.error(e)}try{renderMPS()}catch(e){console.error(e)}}
-function openItem(item){let x=D.find(z=>z.item===item);if(!x)return;editingItem=x.item;$('mt').textContent=x.item;$('mg').innerHTML=[['Linha',x.linha],['Código CIGAM',x.cod],['Tipo',x.tipo||'Próprio'],['Apresentação',x.ap],['Estoque Atual',x.est],['Status',stat(x)],['Último saldo antes do encerramento',x.ultimoSaldoEncerrado??''],['Última Atualização',x.atual]].map(a=>`<div><span>${a[0]}</span><b>${a[1]??''}</b></div>`).join('');$('mRef').value=x.ref??'';$('mAtt').value=x.att??'';$('mTipo').value=x.tipo||'Próprio';$('stockChart').innerHTML=svgStockChart(x);let h=(x.hist||[]).slice().reverse().slice(0,20);$('mhist').innerHTML=h.length?`<table><thead><tr><th>Data</th><th>Estoque</th><th>Relatório</th><th>Evento</th></tr></thead><tbody>${h.map(z=>`<tr><td>${z.data}</td><td>${z.estoque??''}</td><td>${z.rel||''}</td><td>${z.evento||''}</td></tr>`).join('')}</tbody></table>`:'Sem histórico.';$('dlg').showModal()}
+
+function dashLineTone(linha){
+  let u=String(linha||'').toUpperCase();
+  if(u.includes('ANVISA'))return'sector-anvisa';
+  if(u.includes('VETERIN'))return'sector-vet';
+  if(u.includes('ADJUV'))return'sector-adj';
+  if(u.includes('FERTIL'))return'sector-fert';
+  if(u.includes('AMOSTRA'))return'sector-amostra';
+  return'sector-default';
+}
+function dashLineBadge(linha){
+  let txt=String(linha||'Sem linha').trim();
+  return `<span class="sector-pill ${dashLineTone(txt)}">${escHtml(txt)}</span>`;
+}
+function dashApBadge(ap,item){
+  let raw=String(ap??'').trim();
+  if(!raw)return'<span class="ap-pill">—</span>';
+  let upperItem=String(item||'').toUpperCase();
+  let label=raw;
+  if(/^\d+([.,]\d+)?$/.test(raw)){
+    label=upperItem.includes('KG')?`${raw} KG`:`${raw} L`;
+  }
+  return `<span class="ap-pill">${escHtml(label)}</span>`;
+}
+function dashTipoBadge(x){
+  let t=String(x?.tipo||'Próprio').trim();
+  return `<span class="tipo-pill ${isThird(x)?'terc':'prop'}">${escHtml(t)}</span>`;
+}
+function dashStockCell(x){
+  let e=N(x?.est),r=N(x?.ref),a=N(x?.att),s=stat(x);
+  let valCls='val-normal';
+  if(s==='CRÍTICO')valCls='val-critico';
+  else if(s==='ATENÇÃO')valCls='val-atencao';
+  else if(s==='ABAIXO DA REFERÊNCIA')valCls='val-abaixo';
+  else if(s!=='NORMAL')valCls='val-outros';
+  let valTxt=e!==null?e:(x?.est!==''&&x?.est!==undefined&&x?.est!==null?escHtml(x.est):'—');
+  let deltaHtml='',barHtml='';
+  if(e!==null&&r!==null&&r>0){
+    let pct=Math.max(0,Math.min(100,Math.round((e/r)*100)));
+    let fillCls=s==='CRÍTICO'?'fill-critico':s==='ATENÇÃO'?'fill-atencao':s==='ABAIXO DA REFERÊNCIA'?'fill-abaixo':'fill-normal';
+    barHtml=`<div class="stock-mini-bar" title="${pct}% da referência (${e} de ${r})"><span class="${fillCls}" style="width:${pct}%"></span></div>`;
+    let diff=Math.round((e-r)*100)/100;
+    if(e<0)deltaHtml=`<span class="stock-delta-pill crit">Negativo (${diff} p/ ref.)</span>`;
+    else if(e===0)deltaHtml=`<span class="stock-delta-pill att">Zerado (${diff} p/ ref.)</span>`;
+    else if(diff<0)deltaHtml=`<span class="stock-delta-pill ${s==='ATENÇÃO'?'att':'below'}">${diff} p/ ref.</span>`;
+    else if(diff===0)deltaHtml=`<span class="stock-delta-pill ok">100% da meta</span>`;
+    else deltaHtml=`<span class="stock-delta-pill ok">+${diff} acima</span>`;
+  }else if(e!==null&&e<0){
+    deltaHtml=`<span class="stock-delta-pill crit">Saldo negativo</span>`;
+  }else if(s==='SOB DEMANDA'){
+    deltaHtml=`<span class="stock-delta-pill muted">Sob demanda</span>`;
+  }else if(e===null){
+    deltaHtml=`<span class="stock-delta-pill muted">Aguardando leitura</span>`;
+  }
+  return `<div class="stock-cell-wrap"><div class="stock-cell-top"><b class="stock-val ${valCls}">${valTxt}</b>${deltaHtml}</div>${barHtml}</div>`;
+}
+function dashDateCell(atual){
+  let raw=String(atual||'').trim();
+  if(!raw)return'<span class="muted">—</span>';
+  let parts=raw.split(/[,\s]+/).filter(Boolean);
+  if(parts.length>=2){
+    return `<div class="date-cell"><b>${escHtml(parts[0])}</b><span>${escHtml(parts[1].slice(0,5))}</span></div>`;
+  }
+  return `<div class="date-cell"><b>${escHtml(raw)}</b></div>`;
+}
+function dashRowTone(x){
+  let s=stat(x);
+  if(s==='CRÍTICO')return'row-crit';
+  if(s==='ATENÇÃO')return'row-att';
+  if(s==='ABAIXO DA REFERÊNCIA')return'row-below';
+  if(s==='NORMAL')return'row-normal';
+  return'row-other';
+}
+
+function render(){
+  let q=($('q')?.value||'').toUpperCase(),l=$('linha')?.value||'',s=$('st')?.value||'';
+  let baseVis=vis();
+  let f=baseVis.filter(x=>(!q||`${x.produto} ${x.item} ${x.cod}`.toUpperCase().includes(q))&&(!l||x.linha===l)&&(!s||stat(x)===s));
+  if($('body')){
+    $('body').innerHTML=f.length?f.map(x=>`<tr data-i="${encodeURIComponent(x.item)}" class="${dashRowTone(x)}">
+      <td>${dashLineBadge(x.linha)}</td>
+      <td><div class="prod-cell"><b>${escHtml(x.produto||x.item||'')}</b><span class="prod-sku-sub">${escHtml(x.item||'')}</span></div></td>
+      <td>${dashTipoBadge(x)}</td>
+      <td>${dashApBadge(x.ap,x.item)}</td>
+      <td><span class="cigam-pill">${escHtml(x.cod||'—')}</span></td>
+      <td><span class="num-ref">${x.ref!==''&&x.ref!==null&&x.ref!==undefined?x.ref:'—'}</span></td>
+      <td><span class="num-att">${x.att!==''&&x.att!==null&&x.att!==undefined?x.att:'—'}</span></td>
+      <td>${dashStockCell(x)}</td>
+      <td>${badge(stat(x))}</td>
+      <td>${dashDateCell(x.atual)}</td>
+    </tr>`).join(''):`<tr><td colspan="10" class="empty-table-msg">Nenhum item encontrado para os filtros selecionados.</td></tr>`;
+    $('body').querySelectorAll('tr[data-i]').forEach(t=>t.onclick=()=>openItem(decodeURIComponent(t.dataset.i)));
+  }
+  let totalF=f.length,nNorm=f.filter(x=>stat(x)==='NORMAL').length,nBelow=f.filter(x=>stat(x)==='ABAIXO DA REFERÊNCIA').length,nAtt=f.filter(x=>stat(x)==='ATENÇÃO').length,nCrit=f.filter(x=>stat(x)==='CRÍTICO').length;
+  let denom=Math.max(totalF,1);
+  if($('ct'))$('ct').textContent=totalF;
+  if($('cn'))$('cn').textContent=nNorm;
+  if($('ca'))$('ca').textContent=nBelow;
+  if($('cat'))$('cat').textContent=nAtt;
+  if($('cc'))$('cc').textContent=nCrit;
+  const fmtPct=n=>totalF?Math.round((n*100)/denom)+'%':'0%';
+  if($('cnPct'))$('cnPct').textContent=fmtPct(nNorm);
+  if($('caPct'))$('caPct').textContent=fmtPct(nBelow);
+  if($('catPct'))$('catPct').textContent=fmtPct(nAtt);
+  if($('ccPct'))$('ccPct').textContent=fmtPct(nCrit);
+  if($('cnBar'))$('cnBar').style.width=(totalF?(nNorm*100/denom):0)+'%';
+  if($('caBar'))$('caBar').style.width=(totalF?(nBelow*100/denom):0)+'%';
+  if($('catBar'))$('catBar').style.width=(totalF?(nAtt*100/denom):0)+'%';
+  if($('ccBar'))$('ccBar').style.width=(totalF?(nCrit*100/denom):0)+'%';
+  document.querySelectorAll('#dashboard .card[data-f]').forEach(c=>c.classList.toggle('active-filter',c.dataset.f===s&&(s!==''||c.dataset.f==='')));
+  let hasFilter=Boolean(q||l||s);
+  if($('clearDashFilters'))$('clearDashFilters').style.display=hasFilter?'inline-flex':'none';
+  if($('dashActiveFilterChip')){
+    if(hasFilter){
+      let parts=[];
+      if(l)parts.push(`Linha: ${l}`);
+      if(s)parts.push(`Status: ${s}`);
+      if(q)parts.push(`Busca: "${$('q').value}"`);
+      $('dashActiveFilterChip').textContent=`Filtro ativo (${parts.join(' • ')}) — ${totalF} itens`;
+      $('dashActiveFilterChip').style.display='inline-flex';
+    }else{
+      $('dashActiveFilterChip').style.display='none';
+    }
+  }
+
+  let q2=($('q2')?.value||'').toUpperCase(),t2=$('tipo2')?.value||'',sl=$('stockLine')?.value||'',ss=$('stockStatus')?.value||'';
+  let f2=D.filter(x=>(!q2||`${x.produto} ${x.item} ${x.cod}`.toUpperCase().includes(q2))&&(!t2||(x.tipo||'Próprio')===t2)&&(!sl||x.linha===sl)&&(!ss||stat(x)===ss));
+  if($('body2')){
+    $('body2').innerHTML=f2.length?f2.map(x=>`<tr data-i="${encodeURIComponent(x.item)}" class="${dashRowTone(x)}">
+      <td>${dashLineBadge(x.linha)}</td>
+      <td><div class="prod-cell"><b>${escHtml(x.produto||x.item||'')}</b><span class="prod-sku-sub">${escHtml(x.item||'')}</span></div></td>
+      <td>${dashApBadge(x.ap,x.item)}</td>
+      <td>${dashTipoBadge(x)}</td>
+      <td><span class="cigam-pill">${escHtml(x.cod||'—')}</span></td>
+      <td><span class="num-ref">${x.ref!==''&&x.ref!==null&&x.ref!==undefined?x.ref:'—'}</span></td>
+      <td><span class="num-att">${x.att!==''&&x.att!==null&&x.att!==undefined?x.att:'—'}</span></td>
+      <td>${dashStockCell(x)}</td>
+      <td>${badge(stat(x))}</td>
+      <td>${dashDateCell(x.atual)}</td>
+    </tr>`).join(''):`<tr><td colspan="10" class="empty-table-msg">Nenhum item encontrado para os filtros selecionados.</td></tr>`;
+    $('body2').querySelectorAll('tr[data-i]').forEach(t=>t.onclick=()=>openItem(decodeURIComponent(t.dataset.i)));
+  }
+  if($('stockTotal'))$('stockTotal').textContent=f2.length;
+  if($('stockWithValue'))$('stockWithValue').textContent=f2.filter(x=>N(x.est)!==null).length;
+  if($('stockCritical'))$('stockCritical').textContent=f2.filter(x=>stat(x)==='CRÍTICO').length;
+  if($('stockAttention'))$('stockAttention').textContent=f2.filter(x=>stat(x)==='ATENÇÃO').length;
+  if($('stockDemand'))$('stockDemand').textContent=f2.filter(x=>stat(x)==='SOB DEMANDA').length;
+  document.querySelectorAll('#estoque .card[data-sf]').forEach(c=>c.classList.toggle('active-filter',c.dataset.sf===ss&&(ss!==''||c.dataset.sf==='')));
+
+  try{renderDashboardCharts(f)}catch(e){console.error(e)}
+  try{rh()}catch(e){console.error(e)}
+  try{renderPendencias()}catch(e){console.error(e)}
+  try{renderMPS()}catch(e){console.error(e)}
+}
+
+function openItem(item){
+  let x=D.find(z=>z.item===item);if(!x)return;
+  editingItem=x.item;
+  $('mt').textContent=x.item;
+  if($('mtBadges')){
+    $('mtBadges').innerHTML=`${dashLineBadge(x.linha)} <span class="cigam-pill">Cód. CIGAM: ${escHtml(x.cod||'—')}</span> ${dashApBadge(x.ap,x.item)} ${dashTipoBadge(x)} ${badge(stat(x))}`;
+  }
+  let e=N(x.est),r=N(x.ref),a=N(x.att),s=stat(x);
+  let gapTxt='Sem meta definida';
+  let gapCls='muted';
+  if(e!==null&&r!==null&&r>0){
+    let diff=Math.round((e-r)*100)/100;
+    if(diff<0){gapTxt=`Faltam ${Math.abs(diff)} un. para atingir a referência`;gapCls=s==='CRÍTICO'||s==='ATENÇÃO'?'bad':'warn';}
+    else if(diff===0){gapTxt='Exatamente na meta de referência';gapCls='good';}
+    else{gapTxt=`+${diff} un. acima da referência`;gapCls='good';}
+  }else if(s==='SOB DEMANDA'){
+    gapTxt='Produzido sob demanda (meta 0)';
+  }
+  $('mg').innerHTML=`
+    <div class="item-kpi-card kpi-tone-stock">
+      <span>Estoque Atual</span>
+      <div class="item-kpi-main"><b>${x.est!==''&&x.est!==null&&x.est!==undefined?escHtml(x.est):'—'}</b>${x.ajusteManualEstoque?'<span class="manual-stock-note">AJUSTADO</span>':''}</div>
+      <small class="item-kpi-sub ${gapCls}">${escHtml(gapTxt)}</small>
+    </div>
+    <div class="item-kpi-card kpi-tone-ref">
+      <span>Referência (Meta)</span>
+      <div class="item-kpi-main"><b>${x.ref!==''&&x.ref!==null&&x.ref!==undefined?escHtml(x.ref):'0'}</b></div>
+      <small class="item-kpi-sub">Nível ideal de cobertura</small>
+    </div>
+    <div class="item-kpi-card kpi-tone-att">
+      <span>Ponto de Atenção</span>
+      <div class="item-kpi-main"><b>${x.att!==''&&x.att!==null&&x.att!==undefined?escHtml(x.att):'0'}</b></div>
+      <small class="item-kpi-sub">Gatilho de reposição prioritária</small>
+    </div>
+    <div class="item-kpi-card kpi-tone-status">
+      <span>Diagnóstico Atual</span>
+      <div class="item-kpi-main">${badge(s)}</div>
+      <small class="item-kpi-sub">Classificação automática de cobertura</small>
+    </div>
+    <div class="item-kpi-card kpi-tone-info">
+      <span>Apresentação & Linha</span>
+      <div class="item-kpi-main">${dashApBadge(x.ap,x.item)} ${dashTipoBadge(x)}</div>
+      <small class="item-kpi-sub">Setor: ${escHtml(x.linha||'—')} • Cód. ${escHtml(x.cod||'—')}</small>
+    </div>
+    <div class="item-kpi-card kpi-tone-date">
+      <span>Última Atualização</span>
+      <div class="item-kpi-main"><b class="date-val">${escHtml(x.atual||'Sem leitura')}</b></div>
+      <small class="item-kpi-sub">${x.ultimoSaldoEncerrado!==undefined&&x.ultimoSaldoEncerrado!==''?`Últ. saldo encerrado: ${escHtml(x.ultimoSaldoEncerrado)}`:'Sincronizado via relatório / sistema'}</small>
+    </div>
+  `;
+  $('mRef').value=x.ref??'';
+  $('mAtt').value=x.att??'';
+  $('mTipo').value=x.tipo||'Próprio';
+  $('stockChart').innerHTML=svgStockChart(x);
+  let allH=(x.hist||[]).slice().reverse();
+  let h=allH.slice(0,20);
+  if($('mhistCountTag'))$('mhistCountTag').textContent=`Exibindo ${h.length} de ${allH.length} leitura(s)`;
+  $('mhist').innerHTML=h.length?`<table class="item-hist-table"><thead><tr><th>Data / Hora</th><th>Estoque Lido</th><th>Variação (Δ)</th><th>Relatório / Origem</th><th>Evento / Observação</th></tr></thead><tbody>${h.map((z,idx)=>{
+    let curV=N(z.estoque),prevEntry=allH[idx+1],prevV=prevEntry?N(prevEntry.estoque):null;
+    let deltaPill='<span class="hist-delta-pill eq">—</span>';
+    if(curV!==null&&prevV!==null){
+      let d=Math.round((curV-prevV)*100)/100;
+      if(d>0)deltaPill=`<span class="hist-delta-pill up">+${d}</span>`;
+      else if(d<0)deltaPill=`<span class="hist-delta-pill down">${d}</span>`;
+      else deltaPill=`<span class="hist-delta-pill eq">= 0</span>`;
+    }
+    let isManual=String(z.rel||'').toLowerCase().includes('manual');
+    return `<tr>
+      <td>${dashDateCell(z.data)}</td>
+      <td><b class="hist-stock-num">${z.estoque??'—'}</b></td>
+      <td>${deltaPill}</td>
+      <td><span class="hist-rel-pill ${isManual?'manual':''}">${escHtml(z.rel||'—')}</span></td>
+      <td class="hist-event-cell">${escHtml(z.evento||'Leitura de saldo')}</td>
+    </tr>`;
+  }).join('')}</tbody></table>`:'<div class="chartempty">Sem histórico registrado para este item.</div>';
+  $('dlg').showModal();
+}
+
 function saveParams(){let x=D.find(z=>z.item===editingItem);if(!x)return;let r=$('mRef').value.trim(),a=$('mAtt').value.trim();x.ref=r===''?'':Number(r);x.att=a===''?'':Number(a);x.tipo=$('mTipo').value||'Próprio';if(!isThird(x))x.semPedido=false;save();render();openItem(x.item)}
 function rh(){let last=H.at(-1);$('rc').textContent=H.length;$('lu').textContent=last?.upd||0;$('lr').textContent=last?.rev||0;$('li').textContent=last?.ign||0;$('lt').textContent=last?.tercEnc||0;$('hlist').innerHTML=H.length?H.slice().reverse().map(h=>`<div class=historyrow><div><b>${h.file}</b><br><span class=muted>${h.data}</span></div><div><span class=pill>${h.items} itens</span><span class=pill>${h.upd} atualizados</span><span class=pill>${h.rev} revisar</span><span class=pill>${h.ign} ignorados</span>${h.tercEnc?`<span class=pill>${h.tercEnc} terceirizados encerrados</span>`:''}</div></div>`).join(''):'Nenhum relatório importado ainda.';$('rbox').style.display=R.length?'block':'none';$('rlist').innerHTML=R.map(r=>`<div class=historyrow><div><b>${r.cod}</b> — ${r.nome}</div><div>Estoque: ${r.est}</div></div>`).join('');$('ibox').style.display=I.length?'block':'none';$('ilist').innerHTML=I.map(r=>`<div class=historyrow><div><b>${r.cod}</b> — ${r.nome}</div><div>Ignorado pela regra do sistema</div></div>`).join('')}
 function expCSV(){let h=['Linha','Produto','Tipo','Apresentação','Código','Referência','Atenção','Estoque','Status','Último saldo encerrado','Atualização'],esc=v=>`"${String(v??'').replaceAll('"','""')}"`,csv=[h.join(';'),...vis().map(x=>[x.linha,x.produto,x.tipo||'Próprio',x.ap,x.cod,x.ref,x.att,x.est,stat(x),x.ultimoSaldoEncerrado??'',x.atual].map(esc).join(';'))].join('\n'),a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'}));a.download='PCP_CTEC_Estoque.csv';a.click()}
@@ -20,12 +251,12 @@ async function restoreBackup(file){
   let ls=[...new Set(D.map(x=>x.linha).filter(Boolean))].sort();$('linha').innerHTML='<option value="">Todas as linhas</option>'+ls.map(x=>`<option>${x}</option>`).join('');if($('mpsLinha'))$('mpsLinha').innerHTML='<option value="">Todos os setores</option>'+ls.map(x=>`<option>${x}</option>`).join('');if($('stockLine'))$('stockLine').innerHTML='<option value="">Todas as linhas</option>'+ls.map(x=>`<option>${x}</option>`).join('');if($('pmpMonth')&&!$('pmpMonth').value)$('pmpMonth').value=pmpDefaultMonth();
   if(!OPS.week)OPS.week=currentIsoWeek();if($('weekSelect'))$('weekSelect').value=OPS.week;if($('boWeek'))$('boWeek').value=OPS.week;
   try{render()}catch(e){console.error('Render geral',e)}
-try{renderEngineering()}catch(e){console.error('Engenharia',e)}
-try{renderMaterials()}catch(e){console.error('Materiais',e)}
-try{renderMRP()}catch(e){console.error('MRP',e)}
-try{renderWeekly()}catch(e){console.error('Semanal',e)}
-try{renderBombonas()}catch(e){console.error('Bombonas',e)}
-try{renderProduction()}catch(e){console.error('Produção',e)}alert('Backup restaurado com sucesso. As regras atuais foram aplicadas.')
+  try{renderEngineering()}catch(e){console.error('Engenharia',e)}
+  try{renderMaterials()}catch(e){console.error('Materiais',e)}
+  try{renderMRP()}catch(e){console.error('MRP',e)}
+  try{renderWeekly()}catch(e){console.error('Semanal',e)}
+  try{renderBombonas()}catch(e){console.error('Bombonas',e)}
+  try{renderProduction()}catch(e){console.error('Produção',e)}alert('Backup restaurado com sucesso. As regras atuais foram aplicadas.')
 }
 async function linesPDF(file){if(!window.pdfjsLib)throw Error('Leitor PDF não carregou. Verifique a internet.');let pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise,out=[];for(let p=1;p<=pdf.numPages;p++){let pg=await pdf.getPage(p),c=await pg.getTextContent(),it=c.items.map(i=>({t:i.str,x:i.transform[4],y:i.transform[5]})).sort((a,b)=>Math.abs(b.y-a.y)>2?b.y-a.y:a.x-b.x),y=null,line=[];for(let z of it){if(y===null||Math.abs(z.y-y)<=2){line.push(z);if(y===null)y=z.y}else{line.sort((a,b)=>a.x-b.x);out.push(line.map(v=>v.t).join(' ').replace(/\s+/g,' ').trim());line=[z];y=z.y}}if(line.length){line.sort((a,b)=>a.x-b.x);out.push(line.map(v=>v.t).join(' ').replace(/\s+/g,' ').trim())}}return out}
 function parse(ls){let A=[],c=null;const fin=()=>{if(c&&c.s.length)A.push(c)};for(let l of ls){let m=l.match(/Material:\s*([0-9]+)\s+(.+)/i);if(m){fin();c={cod:m[1].trim(),nome:m[2].trim(),s:[]};continue}if(!c)continue;let o=l.match(/^\s*\d{6}\s+\d{2}\/\d{2}\/\d{2}\s+(-?[\d.]+,\d+)\s+(-?[\d.]+,\d{6})\b/);if(o){let v=Number(o[2].replace(/\./g,'').replace(',','.'));if(Number.isFinite(v))c.s.push(v)}}fin();return A.map(r=>{let neg=r.s.filter(x=>x<0);r.est=Math.min(...r.s);return r})}
@@ -46,7 +277,11 @@ function sample(n,c,e){
 async function importPDF(file){$('msg').textContent=' Lendo relatório...';R=[];I=[];D.forEach(x=>{if(demand(x)||isThird(x))x.pedidoAtivo=false});let rec=parse(await linesPDF(file)),upd=0,rev=0,ign=0,tercEnc=0,dt=new Date().toLocaleString('pt-BR');for(let r of rec){if(ignore(r.nome,r.cod)){I.push({cod:r.cod,nome:r.nome,est:r.est});ign++;continue}let x=find(r.cod,r.nome)||sample(r.nome,r.cod,r.est);if(!x){R.push({cod:r.cod,nome:r.nome,est:r.est});rev++;continue}x.cod=r.cod;x.est=r.est;x.atual=dt;x.semPedido=false;if(demand(x)||isThird(x))x.pedidoAtivo=true;x.hist=x.hist||[];x.hist.push({data:dt,estoque:r.est,rel:file.name});upd++}
 D.forEach(x=>{if(isThird(x)&&!x.pedidoAtivo){let old=N(x.est);if(!x.semPedido){if(old!==null)x.ultimoSaldoEncerrado=old;x.hist=x.hist||[];x.hist.push({data:dt,estoque:old!==null?old:'',rel:file.name,evento:'ENCERRADO — não consta no relatório atual'});tercEnc++}x.est='';x.semPedido=true;x.atual=dt;}});
 H.push({file:file.name,data:dt,items:rec.length,upd,rev,ign,tercEnc,ignorados:I.slice()});save();render();$('msg').textContent=` Importado: ${rec.length} itens, ${upd} atualizados, ${rev} revisar, ${ign} ignorados, ${tercEnc} terceirizados encerrados.`}
-document.querySelectorAll('.nav button[data-p]').forEach(b=>b.onclick=()=>panel(b.dataset.p));document.querySelectorAll('[data-engview]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-engview]').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.engview').forEach(v=>v.classList.toggle('active',v.id==='eng_'+b.dataset.engview));renderEngineering()});if($('engQ'))$('engQ').oninput=renderEngineering;if($('engType'))$('engType').onchange=renderEngineering;if($('engProdQ'))$('engProdQ').oninput=renderEngineering;if($('engProdRel'))$('engProdRel').onchange=renderEngineering;if($('engPackQ'))$('engPackQ').oninput=renderEngineering;if($('matQ'))$('matQ').oninput=renderMaterials;if($('matFreq'))$('matFreq').onchange=renderMaterials;if($('matCadastro'))$('matCadastro').onchange=renderMaterials;if($('mpPdf'))$('mpPdf').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{await importMpPDF(f)}catch(err){console.error(err);$('mpMsg').textContent=' Erro: '+err.message}e.target.value=''};if($('mrpBatchFilter'))$('mrpBatchFilter').onchange=renderMRP;if($('mrpView'))$('mrpView').onchange=renderMRP;if($('mrpQ'))$('mrpQ').oninput=renderMRP;if($('mrpCsv'))$('mrpCsv').onclick=()=>exportMrpXlsx(false);if($('mrpBuyCsv'))$('mrpBuyCsv').onclick=()=>exportMrpXlsx(true);if($('formulaClose'))$('formulaClose').onclick=()=>$('formulaDlg').close();document.querySelectorAll('.card[data-f]').forEach(c=>c.onclick=()=>{$('st').value=c.dataset.f;render()});$('q').oninput=render;$('linha').onchange=render;$('st').onchange=render;if($('mpsQ'))$('mpsQ').oninput=renderMPS;if($('mpsLinha'))$('mpsLinha').onchange=renderMPS;if($('mpsNeedFilter'))$('mpsNeedFilter').onchange=renderMPS;if($('pmpMonth'))$('pmpMonth').onchange=renderMPS;if($('pmpCopyPrev'))$('pmpCopyPrev').onclick=copyPreviousPmpMonth;if($('mpsCsv'))$('mpsCsv').onclick=exportMpsCsv;document.querySelectorAll('[data-mpsview]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-mpsview]').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.mpsview').forEach(v=>v.classList.toggle('active',v.id==='mps_'+b.dataset.mpsview));if(b.dataset.mpsview==='bateladas')renderBatches()});$('newBatch').onclick=()=>openBatch();$('batchClose').onclick=()=>$('batchDlg').close();$('batchProduct').onchange=()=>{let d=productDensity($('batchProduct').value);$('batchDensity').value=d??'';updateBatchTankOptions();renderBatchDist()};if($('batchDate'))$('batchDate').onchange=()=>renderBatchDist({dist:currentDialogDist()});$('batchFill').onclick=fillBatchNeeds;$('batchSave').onclick=saveBatch;$('batchStatusFilter').onchange=renderBatches;if($('batchSectorFilter'))$('batchSectorFilter').onchange=renderBatches;if($('batchNameFilter'))$('batchNameFilter').oninput=renderBatches;if($('q2'))$('q2').oninput=render;if($('tipo2'))$('tipo2').onchange=render;if($('stockLine'))$('stockLine').onchange=render;if($('stockStatus'))$('stockStatus').onchange=render;$('pq').oninput=renderPendencias;$('ptype').onchange=renderPendencias;$('pcsv').onclick=exportPendencias;$('showDemand').onchange=e=>setShowDemand(e.target.checked);$('showDemand2').onchange=e=>setShowDemand(e.target.checked);$('showThirdClosed').onchange=e=>setShowThirdClosed(e.target.checked);$('showThirdClosed2').onchange=e=>setShowThirdClosed(e.target.checked);$('goImp').onclick=()=>panel('importacoes');$('csv').onclick=expCSV;$('csv2').onclick=expCSV;$('backup').onclick=backup;$('restore').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{await restoreBackup(f)}catch(err){alert('Erro ao restaurar backup: '+err.message)}e.target.value=''};$('close').onclick=()=>$('dlg').close();$('saveParam').onclick=saveParams;$('pdf').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{await importPDF(f)}catch(err){console.error(err);$('msg').textContent=' Erro: '+err.message}e.target.value=''}
+document.querySelectorAll('.nav button[data-p]').forEach(b=>b.onclick=()=>panel(b.dataset.p));document.querySelectorAll('[data-engview]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-engview]').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.engview').forEach(v=>v.classList.toggle('active',v.id==='eng_'+b.dataset.engview));renderEngineering()});if($('engQ'))$('engQ').oninput=renderEngineering;if($('engType'))$('engType').onchange=renderEngineering;if($('engProdQ'))$('engProdQ').oninput=renderEngineering;if($('engProdRel'))$('engProdRel').onchange=renderEngineering;if($('engPackQ'))$('engPackQ').oninput=renderEngineering;if($('matQ'))$('matQ').oninput=renderMaterials;if($('matFreq'))$('matFreq').onchange=renderMaterials;if($('matCadastro'))$('matCadastro').onchange=renderMaterials;if($('mpPdf'))$('mpPdf').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{await importMpPDF(f)}catch(err){console.error(err);$('mpMsg').textContent=' Erro: '+err.message}e.target.value=''};if($('mrpBatchFilter'))$('mrpBatchFilter').onchange=renderMRP;if($('mrpView'))$('mrpView').onchange=renderMRP;if($('mrpQ'))$('mrpQ').oninput=renderMRP;if($('mrpCsv'))$('mrpCsv').onclick=()=>exportMrpXlsx(false);if($('mrpBuyCsv'))$('mrpBuyCsv').onclick=()=>exportMrpXlsx(true);if($('formulaClose'))$('formulaClose').onclick=()=>$('formulaDlg').close();
+document.querySelectorAll('.card[data-f]').forEach(c=>c.onclick=()=>{$('st').value=($('st').value===c.dataset.f&&c.dataset.f!=='')?'':c.dataset.f;render()});
+document.querySelectorAll('.card[data-sf]').forEach(c=>c.onclick=()=>{if($('stockStatus')){$('stockStatus').value=($('stockStatus').value===c.dataset.sf&&c.dataset.sf!=='')?'':c.dataset.sf;render()}});
+if($('clearDashFilters'))$('clearDashFilters').onclick=()=>{if($('q'))$('q').value='';if($('linha'))$('linha').value='';if($('st'))$('st').value='';render()};
+$('q').oninput=render;$('linha').onchange=render;$('st').onchange=render;if($('mpsQ'))$('mpsQ').oninput=renderMPS;if($('mpsLinha'))$('mpsLinha').onchange=renderMPS;if($('mpsNeedFilter'))$('mpsNeedFilter').onchange=renderMPS;if($('pmpMonth'))$('pmpMonth').onchange=renderMPS;if($('pmpCopyPrev'))$('pmpCopyPrev').onclick=copyPreviousPmpMonth;if($('mpsCsv'))$('mpsCsv').onclick=exportMpsCsv;document.querySelectorAll('[data-mpsview]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-mpsview]').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.mpsview').forEach(v=>v.classList.toggle('active',v.id==='mps_'+b.dataset.mpsview));if(b.dataset.mpsview==='bateladas')renderBatches()});$('newBatch').onclick=()=>openBatch();$('batchClose').onclick=()=>$('batchDlg').close();$('batchProduct').onchange=()=>{let d=productDensity($('batchProduct').value);$('batchDensity').value=d??'';updateBatchTankOptions();renderBatchDist()};if($('batchDate'))$('batchDate').onchange=()=>renderBatchDist({dist:currentDialogDist()});$('batchFill').onclick=fillBatchNeeds;$('batchSave').onclick=saveBatch;$('batchStatusFilter').onchange=renderBatches;if($('batchSectorFilter'))$('batchSectorFilter').onchange=renderBatches;if($('batchNameFilter'))$('batchNameFilter').oninput=renderBatches;if($('q2'))$('q2').oninput=render;if($('tipo2'))$('tipo2').onchange=render;if($('stockLine'))$('stockLine').onchange=render;if($('stockStatus'))$('stockStatus').onchange=render;$('pq').oninput=renderPendencias;$('ptype').onchange=renderPendencias;$('pcsv').onclick=exportPendencias;$('showDemand').onchange=e=>setShowDemand(e.target.checked);$('showDemand2').onchange=e=>setShowDemand(e.target.checked);$('showThirdClosed').onchange=e=>setShowThirdClosed(e.target.checked);$('showThirdClosed2').onchange=e=>setShowThirdClosed(e.target.checked);$('goImp').onclick=()=>panel('importacoes');$('csv').onclick=expCSV;$('csv2').onclick=expCSV;$('backup').onclick=backup;$('restore').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{await restoreBackup(f)}catch(err){alert('Erro ao restaurar backup: '+err.message)}e.target.value=''};$('close').onclick=()=>$('dlg').close();$('saveParam').onclick=saveParams;$('pdf').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{await importPDF(f)}catch(err){console.error(err);$('msg').textContent=' Erro: '+err.message}e.target.value=''}
 
 if($('topBackup'))$('topBackup').onclick=backup;
 if($('topRestore'))$('topRestore').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{await restoreBackup(f)}catch(err){alert('Erro ao restaurar backup: '+err.message)}e.target.value=''};

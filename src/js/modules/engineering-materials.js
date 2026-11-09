@@ -59,6 +59,18 @@ function bindBatchInputs(){
 }
 
 
+function filterDashByStatus(st){
+  let sel=document.getElementById('st');
+  if(!sel)return;
+  sel.value=sel.value===st?'':st;
+  if(typeof render==='function')render();
+}
+function filterDashByLine(line){
+  let sel=document.getElementById('linha');
+  if(!sel)return;
+  sel.value=sel.value===line?'':line;
+  if(typeof render==='function')render();
+}
 function renderDashboardCharts(rows){
   rows=Array.isArray(rows)?rows:[];
   let statusBox=document.getElementById('statusOverviewChart'),riskBox=document.getElementById('lineRiskOverviewChart');
@@ -75,15 +87,51 @@ function renderDashboardCharts(rows){
     if(r!==null&&e<r)return'ABAIXO DA REFERÊNCIA';
     return'NORMAL'
   };
+  const lineTone=name=>{
+    let u=String(name||'').toUpperCase();
+    if(u.includes('ANVISA'))return'sector-anvisa';
+    if(u.includes('VETERIN'))return'sector-vet';
+    if(u.includes('ADJUV'))return'sector-adj';
+    if(u.includes('FERTIL'))return'sector-fert';
+    if(u.includes('AMOSTRA'))return'sector-amostra';
+    return'sector-default';
+  };
   try{
-    const total=Math.max(rows.length,1),groups=[['NORMAL','Normal','fill-normal'],['ABAIXO DA REFERÊNCIA','Abaixo da referência','fill-abaixo'],['ATENÇÃO','Atenção','fill-atencao'],['CRÍTICO','Crítico','fill-critico'],['AGUARDANDO ESTOQUE','Aguardando','fill-outros'],['SOB DEMANDA','Sob demanda','fill-outros']];
-    statusBox.innerHTML=`<div class=hbar-list>${groups.map(([key,label,cls])=>{let n=rows.filter(x=>safeStatus(x)===key).length,p=n*100/total;return `<div class=hbar-row><div class=hbar-label>${label}</div><div class=hbar-track><div class="hbar-fill ${cls}" style="width:${p}%"></div></div><div class=hbar-value>${n}</div></div>`}).join('')}</div>`;
+    let curSt=document.getElementById('st')?.value||'',curLine=document.getElementById('linha')?.value||'';
+    const total=Math.max(rows.length,1),groups=[
+      ['NORMAL','Normal','fill-normal','dot-normal'],
+      ['ABAIXO DA REFERÊNCIA','Abaixo da referência','fill-abaixo','dot-abaixo'],
+      ['ATENÇÃO','Atenção','fill-atencao','dot-atencao'],
+      ['CRÍTICO','Crítico','fill-critico','dot-critico'],
+      ['AGUARDANDO ESTOQUE','Aguardando','fill-outros','dot-outros'],
+      ['SOB DEMANDA','Sob demanda','fill-outros','dot-outros']
+    ];
+    statusBox.innerHTML=`<div class="hbar-list interactive-chart-list">${groups.map(([key,label,cls,dotCls])=>{
+      let n=rows.filter(x=>safeStatus(x)===key).length,p=rows.length?(n*100/total):0,pctTxt=p.toFixed(1).replace('.',',')+'%',isAct=curSt===key;
+      return `<div class="hbar-row clickable-row ${isAct?'active-chart-row':''}" onclick="filterDashByStatus('${safeText(key)}')" title="Clique para filtrar por ${safeText(label)}">
+        <div class="hbar-label"><span class="status-dot ${dotCls}"></span><span>${label}</span></div>
+        <div class="hbar-track"><div class="hbar-fill ${cls}" style="width:${Math.max(n>0?3:0,p)}%"></div></div>
+        <div class="hbar-value"><b class="hbar-num">${n}</b><span class="hbar-pct">${pctTxt}</span></div>
+      </div>`;
+    }).join('')}</div>`;
     let map=new Map();
-    rows.forEach(x=>{let k=String(x?.linha||'Sem linha'),s=safeStatus(x),r=map.get(k)||{name:k,crit:0,att:0,below:0};if(s==='CRÍTICO')r.crit++;if(s==='ATENÇÃO')r.att++;if(s==='ABAIXO DA REFERÊNCIA')r.below++;map.set(k,r)});
+    rows.forEach(x=>{let k=String(x?.linha||'Sem linha'),s=safeStatus(x),r=map.get(k)||{name:k,crit:0,att:0,below:0,total:0};r.total++;if(s==='CRÍTICO')r.crit++;if(s==='ATENÇÃO')r.att++;if(s==='ABAIXO DA REFERÊNCIA')r.below++;map.set(k,r)});
     let arr=[...map.values()].filter(r=>r.crit+r.att+r.below>0).sort((a,b)=>(b.crit*4+b.att*2+b.below)-(a.crit*4+a.att*2+a.below));
     if(!arr.length){riskBox.innerHTML='<div class=chartempty>Nenhum item em risco nos filtros atuais.</div>';return}
     let max=Math.max(...arr.map(r=>r.crit+r.att+r.below),1);
-    riskBox.innerHTML=`<div class=risk-line-list>${arr.map(r=>`<div class=risk-line-row><div class=risk-line-name title="${safeText(r.name)}">${safeText(r.name)}</div><div class=risk-line-track><span class=crit style="width:${r.crit/max*100}%"></span><span class=att style="width:${r.att/max*100}%"></span><span class=below style="width:${r.below/max*100}%"></span></div><div class=risk-line-val>${r.crit} C • ${r.att} A • ${r.below} R</div></div>`).join('')}</div><div class=viz-summary><span><b>C</b> crítico</span><span><b>A</b> atenção</span><span><b>R</b> abaixo da referência</span></div>`
+    riskBox.innerHTML=`<div class="risk-line-list interactive-chart-list">${arr.map(r=>{
+      let sumRisk=r.crit+r.att+r.below,isAct=curLine===r.name;
+      return `<div class="risk-line-row clickable-row ${isAct?'active-chart-row':''}" onclick="filterDashByLine('${safeText(r.name)}')" title="Clique para filtrar a linha ${safeText(r.name)}">
+        <div class="risk-line-name" title="${safeText(r.name)}"><span class="sector-pill ${lineTone(r.name)}">${safeText(r.name)}</span></div>
+        <div class="risk-line-track"><span class="crit" style="width:${r.crit/max*100}%"></span><span class="att" style="width:${r.att/max*100}%"></span><span class="below" style="width:${r.below/max*100}%"></span></div>
+        <div class="risk-line-val">
+          <span class="risk-pill crit ${r.crit===0?'zero':''}" title="Críticos">${r.crit} Crít.</span>
+          <span class="risk-pill att ${r.att===0?'zero':''}" title="Em atenção">${r.att} Aten.</span>
+          <span class="risk-pill below ${r.below===0?'zero':''}" title="Abaixo da referência">${r.below} Abaixo</span>
+          <span class="risk-total-tag" title="Total em risco na linha">${sumRisk} alertas</span>
+        </div>
+      </div>`;
+    }).join('')}</div>`;
   }catch(err){
     console.error('Dashboard de risco:',err);
     riskBox.innerHTML='<div class=safe-error>Erro ao montar o risco por linha: '+safeText(err?.message||err)+'</div>'

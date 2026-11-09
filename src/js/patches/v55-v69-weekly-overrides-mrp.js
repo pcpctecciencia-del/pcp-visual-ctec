@@ -50,7 +50,6 @@ renderWeekly=function(){
   let pack=packagingAggregate(arr),boxes=boxAggregate(arr);
   if($('weeklyPackaging'))$('weeklyPackaging').innerHTML=pack.length?`<div class=v41-order-list>${pack.map(r=>`<div class=v41-order-chip><b>${r.size}L ${escHtml(r.color)} • Mod. ${escHtml(r.model)}</b><br>${r.qty.toLocaleString('pt-BR')} un.</div>`).join('')}</div>`:'<div class=chartempty>Sem consumo de bombonas nesta semana.</div>';
   if($('weeklyBoxes'))$('weeklyBoxes').innerHTML=boxes.length?`<div class=v41-order-list>${boxes.map(r=>`<div class=v41-order-chip><b>${escHtml(r.type)}</b><br>${r.boxes} caixa(s) • ${r.units} bombonas</div>`).join('')}</div>`:'<div class=chartempty>Sem caixas de 5L nesta semana.</div>';
-  save();
 };
 
 weeklyText=function(){
@@ -229,7 +228,6 @@ renderWeekly=function(){
   const pack=packagingAggregate(arr),boxes=boxAggregate(arr);
   if($('weeklyPackaging'))$('weeklyPackaging').innerHTML=pack.length?`<div class=v41-order-list>${pack.map(r=>`<div class=v41-order-chip><b>${r.size}L ${escHtml(r.color)} • Mod. ${escHtml(r.model)}</b><br>${r.qty.toLocaleString('pt-BR')} un.</div>`).join('')}</div>`:'<div class=chartempty>Sem consumo de bombonas nesta semana.</div>';
   if($('weeklyBoxes'))$('weeklyBoxes').innerHTML=boxes.length?`<div class=v41-order-list>${boxes.map(r=>`<div class=v41-order-chip><b>${escHtml(r.type)}</b><br>${r.boxes} caixa(s) • ${r.units} bombonas</div>`).join('')}</div>`:'<div class=chartempty>Sem caixas de 5L nesta semana.</div>';
-  save();
 };
 
 weeklyText=function(){
@@ -368,7 +366,7 @@ render=function(){
     let body=$(id); if(!body) return;
     body.querySelectorAll('tr[data-i]').forEach(tr=>{
       let item=decodeURIComponent(tr.dataset.i||''),x=D.find(z=>z.item===item); if(!x) return;
-      let first=tr.children[0]; if(first) first.innerHTML=`<span class=area-inline>${escHtml(x.linha||'')}</span>`;
+      let first=tr.children[0]; if(first) first.innerHTML=typeof dashLineBadge==='function'?dashLineBadge(x.linha):`<span class=area-inline>${escHtml(x.linha||'')}</span>`;
       if(x.ajusteManualEstoque){
         let cells=[...tr.children];
         let stockCell=id==='body'?cells[7]:cells[7];

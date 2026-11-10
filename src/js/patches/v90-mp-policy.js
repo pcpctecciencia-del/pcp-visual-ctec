@@ -46,7 +46,20 @@ function v90Header(row,needles){let keys=Object.keys(row);for(let k of keys){let
 async function v90ImportParams(file){let rows=await v90ReadParamFile(file);if(!rows.length)throw Error('Planilha vazia.');let sample=rows[0],nameK=v90Header(sample,['NOME','MATERIA PRIMA']),itemK=v90Header(sample,['ITEM']),map={avgMonthly:['CONSUMO MEDIO MENSAL'],leadTime:['TEMPO DE REPOSICAO'],minStock:['ESTOQUE MINIMO'],reorderPoint:['PONTO DE PEDIDO'],purchaseLot:['LOTE DE COMPRA'],maxStock:['ESTOQUE MAXIMO'],unitCost:['CUSTO UNITARIO']};if(!nameK&&!itemK)throw Error('Não encontrei as colunas ITEM/NOME.');let upd=0;for(let r of rows){let item=itemK?String(r[itemK]||'').trim():'',name=nameK?String(r[nameK]||'').trim():'';let p=V90_PARAMS.find(x=>item&&v90Norm(x.item)===v90Norm(item))||V90_PARAMS.find(x=>name&&v90Norm(x.name)===v90Norm(name));if(!p)continue;for(let [field,nds] of Object.entries(map)){let k=v90Header(r,nds);if(k){let val=String(r[k]??'').replace(/R\$|\s/g,'').replace(/\./g,'').replace(',','.');let n=Number(val);if(Number.isFinite(n))p[field]=n}}upd++}v90SaveParams();return upd}
 function v90ExportParams(){if(!window.XLSX)return alert('Biblioteca Excel não carregada.');let data=V90_PARAMS.map(p=>({'ITEM':p.item,'NOME':p.name,'VÍNCULO SISTEMA':p.systemName,'ABC':p.abc,'CONSUMO MÉDIO MENSAL (Kg)':p.avgMonthly,'TEMPO DE REPOSIÇÃO (DIAS)':p.leadTime,'ESTOQUE MÍNIMO (Kg)':p.minStock,'PONTO DE PEDIDO':p.reorderPoint,'LOTE DE COMPRA':p.purchaseLot,'ESTOQUE MÁXIMO':p.maxStock,'CUSTO UNITÁRIO (Kg)':p.unitCost}));let ws=XLSX.utils.json_to_sheet(data),wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Parâmetros MP');XLSX.writeFile(wb,'PCP_CTEC_Parametros_MP_V95.xlsx',{compression:true})}
 
-function v90NeedData(){let batches=mrpBatchSelection(),need={},problems=[];batches.forEach(b=>{let kg=effectiveBatchKg(b)||0,link=productFormulaLink(b.produto);if(!link||!link.formula){problems.push(`${b.produto}: sem fórmula vinculada`);return}let f=formulaGet(link.formula);if(!f||f.pending){problems.push(`${b.produto}: fórmula ${link.formula||'não definida'} pendente`);return}(f.components||[]).forEach(c=>{let pct=Number(c.pct)||0;if(pct<=0)return;need[c.material]=(need[c.material]||0)+kg*pct/100})});return{batches,need,problems}}
+function v90NeedData(){
+  let batches=mrpBatchSelection(),need={},problems=[];
+  batches.forEach(b=>{
+    let kg=effectiveBatchKg(b)||0,link=productFormulaLink(b.produto);
+    let pNorm=v90Norm(b.produto);
+    if(pNorm.includes('TABLETE CLOR')||pNorm.includes('TABLET CLOR'))return;
+    if(link&&(link.relation==='SEM FÓRMULA'||link.relation==='DESCONSIDERADO'||link.active===false))return;
+    if(!link||!link.formula){problems.push(`${b.produto}: sem fórmula vinculada`);return}
+    let f=formulaGet(link.formula);
+    if(!f||f.pending){problems.push(`${b.produto}: fórmula ${link.formula||'não definida'} pendente`);return}
+    (f.components||[]).forEach(c=>{let pct=Number(c.pct)||0;if(pct<=0)return;need[c.material]=(need[c.material]||0)+kg*pct/100});
+  });
+  return{batches,need,problems};
+}
 window.mrpData=mrpData=function(){
   let base=v90NeedData(),allNames=[...new Set([...Object.keys(MP.stock||{}),...Object.keys(base.need)])];
   let rows=allNames.map(material=>{let stock=mpStock(material),req=base.need[material]||0,p=v90ParamFor(material),proj=stock===null?null:stock-req,minBuy=proj===null?null:Math.max(0,-proj),coverage=(p&&proj!==null&&Number(p.avgMonthly)>0)?Math.max(0,proj)/(Number(p.avgMonthly)/30):null,lead=p?Number(p.leadTime)||0:0,status='NORMAL',prio='P4',suggested=0;
@@ -57,13 +70,184 @@ window.mrpData=mrpData=function(){
   }).sort((a,b)=>{let rank={P1:0,P2:1,P3:2,P4:3};return rank[a.priority]-rank[b.priority]||(b.purchaseValue||0)-(a.purchaseValue||0)||b.req-a.req||a.material.localeCompare(b.material,'pt-BR')});
   return{batches:base.batches,rows,problems:base.problems}
 };
-window.renderMrpChart=renderMrpChart=function(rows){let box=document.getElementById('mrpShortageChart');if(!box)return;let top=rows.filter(r=>(r.suggested||0)>0).sort((a,b)=>b.suggested-a.suggested).slice(0,10),max=Math.max(...top.map(r=>r.suggested),1);if(!top.length){box.innerHTML='<div class=chartempty>Nenhuma compra sugerida para o plano atual.</div>';return}box.innerHTML=`<div class=hbar-list>${top.map(r=>`<div class=hbar-row><div class=hbar-label title="${escHtml(r.material)}">${escHtml(r.material)}</div><div class=hbar-track><div class="hbar-fill stack-critical" style="width:${r.suggested/max*100}%"></div></div><div class=hbar-value>${stockFmt(r.suggested)}</div></div>`).join('')}</div>`};
+window.filterMrpByView=function(v){
+  const sel=document.getElementById('mrpView');
+  if(!sel)return;
+  if(sel.value===v&&v!=='PLAN')sel.value='PLAN';
+  else sel.value=v;
+  const qEl=document.getElementById('mrpQ');
+  if(qEl&&qEl.dataset.fromChart==='1'){qEl.value='';delete qEl.dataset.fromChart;}
+  renderMRP();
+};
+window.filterMrpByMaterial=function(mat){
+  const qEl=document.getElementById('mrpQ');
+  const sel=document.getElementById('mrpView');
+  if(!qEl)return;
+  if(qEl.value.toUpperCase()===String(mat||'').toUpperCase()){
+    qEl.value='';delete qEl.dataset.fromChart;
+  }else{
+    qEl.value=mat;qEl.dataset.fromChart='1';
+    if(sel&&sel.value!=='ALL'&&sel.value!=='ACTION'&&sel.value!=='PLAN')sel.value='ACTION';
+  }
+  renderMRP();
+};
+window.renderMrpChart=renderMrpChart=function(rows){
+  let box=document.getElementById('mrpShortageChart');
+  if(box){
+    let top=rows.filter(r=>(r.suggested||0)>0).sort((a,b)=>b.suggested-a.suggested).slice(0,10),max=Math.max(...top.map(r=>r.suggested),1);
+    if(!top.length){
+      box.innerHTML='<div class=chartempty>Nenhuma compra sugerida para o plano atual.</div>';
+    }else{
+      const activeQ=(document.getElementById('mrpQ')?.value||'').trim().toUpperCase();
+      box.innerHTML=`<div class="hbar-list mrp-top-list">${top.map(r=>{
+        const fillCls=r.priority==='P1'?'stack-critical':r.priority==='P2'?'stack-attention':'stack-reference';
+        const prioShort=r.priority||'P3';
+        const isSel=activeQ&&activeQ===r.material.toUpperCase();
+        const safeMat=escHtml(r.material).replace(/'/g,"&#39;");
+        return `<div class="hbar-row interactive-row mrp-top-row ${isSel?'active-filter':''}" onclick="filterMrpByMaterial('${safeMat}')" title="Clique para filtrar ${escHtml(r.material)} na tabela">
+          <div class="hbar-label mrp-bar-label">
+            <span class="mrp-mini-prio ${prioShort.toLowerCase()}">${prioShort}</span>
+            <span class="hbar-label-text" title="${escHtml(r.material)}">${escHtml(r.material)}</span>
+          </div>
+          <div class="hbar-track"><div class="hbar-fill ${fillCls}" style="width:${Math.max(4,r.suggested/max*100)}%"></div></div>
+          <div class="hbar-value mrp-bar-val">
+            <b>${stockFmt(r.suggested)} kg</b>
+            <small>${r.param?v90Money(r.purchaseValue):'—'}</small>
+          </div>
+        </div>`;
+      }).join('')}</div>`;
+    }
+  }
+  let pbox=document.getElementById('mrpPriorityChart');
+  if(pbox){
+    const curView=document.getElementById('mrpView')?.value||'PLAN';
+    const groups=[
+      {k:'P1',label:'P1 — Ruptura / Urgente',sub:'Sem saldo para atender o plano',cls:'stack-critical',badgeCls:'v90-p1'},
+      {k:'P2',label:'P2 — Crítico / Lead Time',sub:'Abaixo do mínimo ou cob. < LT',cls:'stack-attention',badgeCls:'v90-p2'},
+      {k:'P3',label:'P3 — Ponto de Pedido',sub:'Atingiu gatilho de reposição',cls:'stack-reference',badgeCls:'v90-p3'},
+      {k:'P4',label:'P4 — Estoque Saudável',sub:'Sem necessidade de compra',cls:'stack-ok',badgeCls:'v90-p4'}
+    ];
+    const totItems=Math.max(1,rows.length);
+    const abcBuy={A:0,B:0,C:0};
+    rows.forEach(r=>{if((r.purchaseValue||0)>0){const c=r.abc||'C';abcBuy[c]=(abcBuy[c]||0)+r.purchaseValue;}});
+    const totBuyVal=Math.max(1,abcBuy.A+abcBuy.B+abcBuy.C);
+    pbox.innerHTML=`<div class="mrp-prio-matrix">
+      ${groups.map(g=>{
+        const list=rows.filter(r=>r.priority===g.k);
+        const cnt=list.length;
+        const kg=list.reduce((a,r)=>a+(r.suggested||0),0);
+        const val=list.reduce((a,r)=>a+(r.purchaseValue||0),0);
+        const pct=Math.round((cnt/totItems)*100);
+        const targetView=g.k==='P4'?'ALL':g.k;
+        const isAct=curView===g.k;
+        return `<div class="mrp-prio-row interactive-row ${isAct?'active-filter':''}" onclick="filterMrpByView('${targetView}')" title="Clique para filtrar ${g.label}">
+          <div class="mrp-prio-info">
+            <div class="mrp-prio-title"><span class="v90-prio ${g.badgeCls}">${g.k}</span><b>${g.label.split('—')[1].trim()}</b></div>
+            <small>${g.sub}</small>
+          </div>
+          <div class="mrp-prio-bar-wrap">
+            <div class="hbar-track"><div class="hbar-fill ${g.cls}" style="width:${cnt?Math.max(5,pct):0}%"></div></div>
+            <span class="mrp-prio-cnt">${cnt} MP(s) (${pct}%)</span>
+          </div>
+          <div class="mrp-prio-metrics">
+            <b>${kg>0?stockFmt(kg)+' kg':'0 kg'}</b>
+            <small>${val>0?v90Money(val):'R$ 0,00'}</small>
+          </div>
+        </div>`;
+      }).join('')}
+      <div class="mrp-abc-summary">
+        <div class="mrp-abc-head"><span>Concentração Financeira da Compra por Curva ABC</span><b>${v90Money(abcBuy.A+abcBuy.B+abcBuy.C)}</b></div>
+        <div class="mrp-abc-chips">
+          <div class="mrp-abc-chip a"><span class="v90-abc a">A</span><div><b>${v90Money(abcBuy.A)}</b><small>${Math.round(abcBuy.A/totBuyVal*100)}% do valor</small></div></div>
+          <div class="mrp-abc-chip b"><span class="v90-abc b">B</span><div><b>${v90Money(abcBuy.B)}</b><small>${Math.round(abcBuy.B/totBuyVal*100)}% do valor</small></div></div>
+          <div class="mrp-abc-chip c"><span class="v90-abc c">C</span><div><b>${v90Money(abcBuy.C)}</b><small>${Math.round(abcBuy.C/totBuyVal*100)}% do valor</small></div></div>
+        </div>
+      </div>
+    </div>`;
+  }
+};
 window.renderMRP=renderMRP=function(){
-  if(!document.getElementById('mrpBody'))return;let d=mrpData(),view=document.getElementById('mrpView')?.value||'PLAN',q=(document.getElementById('mrpQ')?.value||'').trim().toUpperCase(),rows=d.rows;
-  if(view==='PLAN')rows=rows.filter(r=>r.req>0);if(view==='ACTION')rows=rows.filter(r=>['P1','P2','P3'].includes(r.priority));if(['P1','P2','P3'].includes(view))rows=rows.filter(r=>r.priority===view);if(q)rows=rows.filter(r=>`${r.material} ${r.code}`.toUpperCase().includes(q));
-  document.getElementById('mrpBody').innerHTML=rows.map(r=>{let pc=r.proj===null?'':r.proj<0?'negative':r.proj>0?'positive':'zero',cover=r.coverage===null?'—':r.coverage.toLocaleString('pt-BR',{maximumFractionDigits:1})+' d',cr=r.coverage!==null&&r.lead&&r.coverage<r.lead?'v90-cover-risk':'';return `<tr><td>${escHtml(r.code||'—')}</td><td><b>${escHtml(r.material)}</b></td><td>${r.abc?v90AbcBadge(r.abc):'—'}</td><td class=percent>${stockFmt(r.stock)}</td><td class=percent>${stockFmt(r.req)}</td><td class="percent ${pc}">${r.proj===null?'—':stockFmt(r.proj)}</td><td class=percent>${r.param?stockFmt(r.param.minStock):'—'}</td><td class=percent>${r.param?stockFmt(r.param.reorderPoint):'—'}</td><td class="percent ${cr}">${cover}</td><td class=percent>${r.param?r.lead+' d':'—'}</td><td class=percent>${r.minBuy===null?'—':stockFmt(r.minBuy)}</td><td class=percent><b class="${r.suggested>0?'mrp-buy':''}">${stockFmt(r.suggested)}</b></td><td class="v90-money">${r.param?v90Money(r.purchaseValue):'—'}</td><td>${v90PrioBadge(r.priority)}</td><td>${v90StatusBadge(r.status)}</td></tr>`}).join('');
+  if(!document.getElementById('mrpBody'))return;
+  let d=mrpData(),view=document.getElementById('mrpView')?.value||'PLAN',q=(document.getElementById('mrpQ')?.value||'').trim().toUpperCase(),rows=d.rows;
+  if(view==='PLAN')rows=rows.filter(r=>r.req>0);
+  if(view==='ACTION')rows=rows.filter(r=>['P1','P2','P3'].includes(r.priority));
+  if(['P1','P2','P3'].includes(view))rows=rows.filter(r=>r.priority===view);
+  if(q)rows=rows.filter(r=>`${r.material} ${r.code}`.toUpperCase().includes(q));
+
+  const tagEl=document.getElementById('mrpTableCountTag');
+  if(tagEl)tagEl.textContent=`${rows.length} matéria(s)-prima(s) exibida(s)`;
+
+  document.getElementById('mrpBody').innerHTML=rows.length?rows.map(r=>{
+    let pc=r.proj===null?'':r.proj<0?'negative':r.proj>0?'positive':'zero';
+    let cover=r.coverage===null?'—':r.coverage.toLocaleString('pt-BR',{maximumFractionDigits:1})+' d';
+    let cr=r.coverage!==null&&r.lead&&r.coverage<r.lead?'v90-cover-risk':'';
+    let rowCls=r.priority==='P1'?'row-status-critical':r.priority==='P2'?'row-status-attention':r.priority==='P3'?'row-status-reference':'row-status-normal';
+    let unitSub=r.param?`Custo: ${v90Money(r.param.unitCost)}/kg • Lote: ${stockFmt(r.param.purchaseLot||0)} kg`:'Sem parâmetro cadastrado';
+    return `<tr class="product-row-modern ${rowCls}">
+      <td class="col-center"><span class="cigam-code">${escHtml(r.code||'—')}</span></td>
+      <td>
+        <div class="prod-cell-main">${escHtml(r.material)}</div>
+        <div class="prod-cell-sub">${unitSub}</div>
+      </td>
+      <td class="col-center">${r.abc?v90AbcBadge(r.abc):'—'}</td>
+      <td class="col-right ref-val">${stockFmt(r.stock)}</td>
+      <td class="col-right"><span class="${r.req>0?'mrp-req-active':'text-muted'}">${stockFmt(r.req)}</span></td>
+      <td class="col-right"><span class="mrp-proj-val ${pc}">${r.proj===null?'—':stockFmt(r.proj)}</span></td>
+      <td class="col-right ref-val">${r.param?stockFmt(r.param.minStock):'—'}</td>
+      <td class="col-right att-val">${r.param?stockFmt(r.param.reorderPoint):'—'}</td>
+      <td class="col-center"><span class="mrp-cov-pill ${cr}">${cover}</span></td>
+      <td class="col-center"><span class="ap-pill">${r.param?r.lead+' d':'—'}</span></td>
+      <td class="col-right ref-val">${r.minBuy===null?'—':stockFmt(r.minBuy)}</td>
+      <td class="col-right">${r.suggested>0?`<span class="mrp-sug-pill">${stockFmt(r.suggested)} kg</span>`:'<span class="text-muted">0</span>'}</td>
+      <td class="col-right v90-money">${r.param&&r.purchaseValue>0?`<span class="mrp-val-active">${v90Money(r.purchaseValue)}</span>`:(r.param?'R$ 0,00':'—')}</td>
+      <td class="col-center">${v90PrioBadge(r.priority)}</td>
+      <td class="col-center">${v90StatusBadge(r.status)}</td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="15" class="empty-table-msg">Nenhuma matéria-prima encontrada para o filtro selecionado.</td></tr>`;
+
   let used=d.rows.filter(r=>r.req>0),p1=d.rows.filter(r=>r.priority==='P1'),p2=d.rows.filter(r=>r.priority==='P2'),p3=d.rows.filter(r=>r.priority==='P3');
-  document.getElementById('mrpBatchCount').textContent=d.batches.length;document.getElementById('mrpMatCount').textContent=used.length;document.getElementById('mrpRuptureCount').textContent=p1.length;document.getElementById('mrpCriticalCount').textContent=p2.length;document.getElementById('mrpOrderCount').textContent=p3.length;document.getElementById('mrpSuggestedKg').textContent=stockFmt(d.rows.reduce((a,r)=>a+(r.suggested||0),0))+' kg';document.getElementById('mrpSuggestedValue').textContent=v90Money(d.rows.reduce((a,r)=>a+(r.purchaseValue||0),0));document.getElementById('mrpStockValue').textContent=v90Money(d.rows.reduce((a,r)=>a+(r.stockValue||0),0));document.getElementById('mrpStockDate').textContent=MP.updated||'—';document.getElementById('mrpProblems').innerHTML=d.problems.length?`<div class=mrp-problems><b>Planejamento não calculado em ${d.problems.length} batelada(s):</b> ${d.problems.map(escHtml).join(' • ')}</div>`:'';renderMrpChart(d.rows)
+  let actionRows=d.rows.filter(r=>['P1','P2','P3'].includes(r.priority));
+  let totRows=Math.max(1,d.rows.length);
+  let totSugKg=d.rows.reduce((a,r)=>a+(r.suggested||0),0);
+  let totSugVal=d.rows.reduce((a,r)=>a+(r.purchaseValue||0),0);
+  let totStockVal=d.rows.reduce((a,r)=>a+(r.stockValue||0),0);
+
+  document.getElementById('mrpBatchCount').textContent=d.batches.length;
+  document.getElementById('mrpMatCount').textContent=used.length;
+  document.getElementById('mrpRuptureCount').textContent=p1.length;
+  document.getElementById('mrpCriticalCount').textContent=p2.length;
+  document.getElementById('mrpOrderCount').textContent=p3.length;
+  document.getElementById('mrpSuggestedKg').textContent=stockFmt(totSugKg)+' kg';
+  document.getElementById('mrpSuggestedValue').textContent=v90Money(totSugVal);
+  document.getElementById('mrpStockValue').textContent=v90Money(totStockVal);
+  document.getElementById('mrpStockDate').textContent=MP.updated||'—';
+
+  const setBar=(id,pct)=>{const el=document.getElementById(id);if(el)el.style.width=Math.min(100,Math.max(0,pct))+'%';};
+  setBar('mrpMatBar',Math.round(used.length/totRows*100));
+  setBar('mrpP1Bar',p1.length?Math.max(12,Math.round(p1.length/totRows*100)):0);
+  setBar('mrpP2Bar',p2.length?Math.max(12,Math.round(p2.length/totRows*100)):0);
+  setBar('mrpP3Bar',p3.length?Math.max(12,Math.round(p3.length/totRows*100)):0);
+
+  const matBadge=document.getElementById('mrpMatBadge');
+  if(matBadge)matBadge.textContent=`${Math.round(used.length/totRows*100)}% do catálogo`;
+  const p1Badge=document.getElementById('mrpP1Badge');
+  if(p1Badge)p1Badge.textContent=p1.length?v90Money(p1.reduce((a,r)=>a+(r.purchaseValue||0),0)):'Zero ruptura';
+  const p2Badge=document.getElementById('mrpP2Badge');
+  if(p2Badge)p2Badge.textContent=p2.length?v90Money(p2.reduce((a,r)=>a+(r.purchaseValue||0),0)):'Controlado';
+  const p3Badge=document.getElementById('mrpP3Badge');
+  if(p3Badge)p3Badge.textContent=p3.length?v90Money(p3.reduce((a,r)=>a+(r.purchaseValue||0),0)):'Em dia';
+
+  const buyCntPill=document.getElementById('mrpBuyCountPill');
+  if(buyCntPill)buyCntPill.textContent=`${actionRows.length} MP(s) p/ repor`;
+  const buySharePill=document.getElementById('mrpBuyP1SharePill');
+  if(buySharePill)buySharePill.textContent=`${p1.length} P1 • ${p2.length} P2 • ${p3.length} P3`;
+
+  document.querySelectorAll('#mrp [data-mrp-view]').forEach(c=>{
+    c.classList.toggle('active-card',c.getAttribute('data-mrp-view')===view);
+  });
+
+  document.getElementById('mrpProblems').innerHTML=d.problems.length?`<div class=mrp-problems><b>Atenção — Planejamento não calculado em ${d.problems.length} batelada(s):</b> ${d.problems.map(escHtml).join(' • ')}</div>`:'';
+  renderMrpChart(d.rows);
 };
 window.exportMrpXlsx=exportMrpXlsx=function(onlyBuy=false){if(!window.XLSX)return alert('O gerador de Excel não carregou.');let d=mrpData(),rows=onlyBuy?d.rows.filter(r=>['P1','P2','P3'].includes(r.priority)):d.rows;let data=[['Código CIGAM','Matéria-prima','ABC','Estoque atual (kg)','Necessidade do plano (kg)','Saldo projetado (kg)','Estoque mínimo','Ponto de pedido','Cobertura (dias)','Lead time (dias)','Compra mínima (kg)','Compra sugerida (kg)','Custo unitário (R$/kg)','Valor compra sugerida (R$)','Prioridade','Situação'],...rows.map(r=>[String(r.code||''),r.material,r.abc||'',r.stock??'',r.req??'',r.proj??'',r.param?.minStock??'',r.param?.reorderPoint??'',r.coverage??'',r.lead||'',r.minBuy??'',r.suggested||0,r.param?.unitCost??'',r.purchaseValue||0,r.priority,r.status])];let ws=XLSX.utils.aoa_to_sheet(data);for(let i=2;i<=data.length;i++){if(ws['A'+i]){ws['A'+i].t='s';ws['A'+i].z='@'}}ws['!cols']=[{wch:16},{wch:48},{wch:7},{wch:18},{wch:21},{wch:20},{wch:15},{wch:16},{wch:16},{wch:15},{wch:18},{wch:20},{wch:20},{wch:24},{wch:18},{wch:20}];let wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,onlyBuy?'Compras':'MRP Compras');let sum=[['PCP C-TEC — MRP com Política de Estoques'],['Gerado em',new Date().toLocaleString('pt-BR')],['Estoque atualizado em',MP.updated||''],['Bateladas consideradas',d.batches.length],['Materiais P1',d.rows.filter(r=>r.priority==='P1').length],['Materiais P2',d.rows.filter(r=>r.priority==='P2').length],['Materiais P3',d.rows.filter(r=>r.priority==='P3').length],['Compra sugerida (kg)',d.rows.reduce((a,r)=>a+(r.suggested||0),0)],['Valor compra sugerida (R$)',d.rows.reduce((a,r)=>a+(r.purchaseValue||0),0)],['Valor estoque atual parametrizado (R$)',d.rows.reduce((a,r)=>a+(r.stockValue||0),0)]];XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(sum),'Resumo');XLSX.writeFile(wb,onlyBuy?'PCP_CTEC_Compras_Prioritarias_V90.xlsx':'PCP_CTEC_MRP_Politica_Estoques_V90.xlsx',{compression:true})};
 

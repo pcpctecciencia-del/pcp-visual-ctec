@@ -138,31 +138,111 @@
 </section>
 
 <section id=mrp class=panel>
-<div class=hero><h2>MRP / Compras — Política de Estoques</h2><p>Combina estoque atual do CIGAM, necessidade das bateladas abertas e parâmetros de estoque para antecipar ruptura, priorizar compras e estimar o valor financeiro da reposição.</p></div>
-<div class="cards mrp-kpis v90-mrp-kpis">
-  <div class=card><small>Bateladas consideradas</small><b id=mrpBatchCount>0</b></div>
-  <div class=card><small>Materiais consumidos</small><b id=mrpMatCount>0</b></div>
-  <div class="card critical"><small>Rupturas / P1</small><b id=mrpRuptureCount>0</b></div>
-  <div class=card><small>Críticos / P2</small><b id=mrpCriticalCount>0</b></div>
-  <div class=card><small>Programar compra / P3</small><b id=mrpOrderCount>0</b></div>
-  <div class=card><small>Compra sugerida</small><b id=mrpSuggestedKg>0 kg</b></div>
-  <div class=card><small>Valor compra sugerida</small><b id=mrpSuggestedValue>R$ 0</b></div>
-  <div class=card><small>Valor estoque atual</small><b id=mrpStockValue>R$ 0</b></div>
-  <div class=card><small>Saldo MP atualizado em</small><b id=mrpStockDate style="font-size:16px">—</b></div>
+<div class=hero><h2>MRP / Compras — Política de Estoques</h2><p>Combina estoque atual do CIGAM, necessidade das bateladas abertas e parâmetros de estoque (Curva ABC, Mínimo, Ponto de Pedido e Lead Time) para antecipar rupturas e priorizar compras.</p></div>
+
+<div class="cards mrp-kpis v90-mrp-kpis mrp-exec-kpis">
+  <div class="card kpi-exec accent-blue" onclick="filterMrpByView('PLAN')" title="Clique para ver os materiais consumidos pelas bateladas do plano">
+    <div class="kpi-exec-top"><span class="kpi-exec-label">Bateladas no Plano</span><span class="kpi-exec-badge neutral">A Fazer → Envase</span></div>
+    <b id=mrpBatchCount>0</b>
+    <div class="kpi-exec-bar"><span id="mrpBatchBar" style="width:100%;background:#2563eb"></span></div>
+    <small class="kpi-exec-sub">Ordens abertas comprometendo MP</small>
+  </div>
+  <div class="card kpi-exec accent-slate" data-mrp-view="PLAN" onclick="filterMrpByView('PLAN')" title="Clique para filtrar materiais com consumo previsto no plano">
+    <div class="kpi-exec-top"><span class="kpi-exec-label">MPs Consumidas</span><span class="kpi-exec-badge neutral" id="mrpMatBadge">No plano</span></div>
+    <b id=mrpMatCount>0</b>
+    <div class="kpi-exec-bar"><span id="mrpMatBar" style="width:0%;background:#475569"></span></div>
+    <small class="kpi-exec-sub">Matérias-primas com demanda ativa</small>
+  </div>
+  <div class="card kpi-exec critical accent-red" data-mrp-view="P1" onclick="filterMrpByView('P1')" title="Clique para filtrar apenas Rupturas / P1 (Urgente)">
+    <div class="kpi-exec-top"><span class="kpi-exec-label">Rupturas • P1</span><span class="kpi-exec-badge danger" id="mrpP1Badge">Urgente</span></div>
+    <b id=mrpRuptureCount>0</b>
+    <div class="kpi-exec-bar"><span id="mrpP1Bar" style="width:0%;background:#dc2626"></span></div>
+    <small class="kpi-exec-sub">Saldo negativo ou sem estoque CIGAM</small>
+  </div>
+  <div class="card kpi-exec accent-orange" data-mrp-view="P2" onclick="filterMrpByView('P2')" title="Clique para filtrar apenas Críticos / P2 (Alta Prioridade)">
+    <div class="kpi-exec-top"><span class="kpi-exec-label">Críticos • P2</span><span class="kpi-exec-badge warn" id="mrpP2Badge">Alta</span></div>
+    <b id=mrpCriticalCount>0</b>
+    <div class="kpi-exec-bar"><span id="mrpP2Bar" style="width:0%;background:#ea580c"></span></div>
+    <small class="kpi-exec-sub">Abaixo do mínimo ou cob. &lt; lead time</small>
+  </div>
+  <div class="card kpi-exec accent-amber" data-mrp-view="P3" onclick="filterMrpByView('P3')" title="Clique para filtrar apenas Ponto de Pedido / P3 (Programar)">
+    <div class="kpi-exec-top"><span class="kpi-exec-label">Ponto de Pedido • P3</span><span class="kpi-exec-badge ref" id="mrpP3Badge">Programar</span></div>
+    <b id=mrpOrderCount>0</b>
+    <div class="kpi-exec-bar"><span id="mrpP3Bar" style="width:0%;background:#d97706"></span></div>
+    <small class="kpi-exec-sub">Atingiu gatilho de reposição padrão</small>
+  </div>
 </div>
-<div class=mrp-note><b>Decisão automática:</b> <b>P1</b> = ruptura/sem estoque para o plano; <b>P2</b> = abaixo do mínimo ou cobertura menor que o lead time; <b>P3</b> = saldo projetado atingiu o ponto de pedido. <b>Compra mínima</b> atende apenas o plano; <b>Compra sugerida</b> usa o lote padrão de reposição e só multiplica o lote quando a falta real for maior que um lote.</div>
-<div class=toolbar>
+
+<div class="cards mrp-fin-kpis">
+  <div class="card kpi-fin accent-red-soft" data-mrp-view="ACTION" onclick="filterMrpByView('ACTION')" title="Clique para listar todas as sugestões de compra (P1 + P2 + P3)">
+    <div class="kpi-fin-head"><small>Volume Total de Compra Sugerida</small><span class="kpi-fin-pill red" id="mrpBuyCountPill">0 itens</span></div>
+    <b id=mrpSuggestedKg>0 kg</b>
+    <span class="kpi-fin-sub">Soma dos lotes sugeridos para reposição</span>
+  </div>
+  <div class="card kpi-fin accent-emerald" data-mrp-view="ACTION" onclick="filterMrpByView('ACTION')" title="Clique para listar todas as compras sugeridas e valores">
+    <div class="kpi-fin-head"><small>Investimento Estimado (Compra)</small><span class="kpi-fin-pill emerald" id="mrpBuyP1SharePill">P1+P2+P3</span></div>
+    <b id=mrpSuggestedValue>R$ 0</b>
+    <span class="kpi-fin-sub">Custo financeiro estimado da reposição</span>
+  </div>
+  <div class="card kpi-fin accent-indigo" data-mrp-view="ALL" onclick="filterMrpByView('ALL')" title="Clique para exibir todas as matérias-primas cadastradas">
+    <div class="kpi-fin-head"><small>Valor em Estoque Atual (MP)</small><span class="kpi-fin-pill indigo">Patrimônio MP</span></div>
+    <b id=mrpStockValue>R$ 0</b>
+    <span class="kpi-fin-sub">Saldo físico valorizado pelo custo unitário</span>
+  </div>
+  <div class="card kpi-fin accent-neutral">
+    <div class="kpi-fin-head"><small>Saldo MP Atualizado em</small><span class="kpi-fin-pill slate">Relatório CIGAM</span></div>
+    <b id=mrpStockDate class="mrp-date-val">—</b>
+    <span class="kpi-fin-sub">Data da última importação de matérias-primas</span>
+  </div>
+</div>
+
+<div class="mrp-rule-banner">
+  <div class="mrp-rule-main">
+    <span class="mrp-rule-tag">COMO FUNCIONA O MRP</span>
+    <span><b>Saldo Projetado</b> = Estoque Atual − Necessidade de <b>todas as bateladas não apontadas</b> (<i>A Fazer, Em Fila, Produção, Análise e Envase</i>, com ou sem lote). A matéria-prima só deixa de ser comprometida quando a batelada chega em <b>Apontamento</b>.</span>
+  </div>
+  <div class="mrp-rule-pills">
+    <span class="mrp-r-pill p1"><b>P1</b> Ruptura / Sem Estoque</span>
+    <span class="mrp-r-pill p2"><b>P2</b> &lt; Mínimo ou Cob. &lt; Lead Time</span>
+    <span class="mrp-r-pill p3"><b>P3</b> ≤ Ponto de Pedido</span>
+    <span class="mrp-r-pill p4"><b>P4</b> Estoque Saudável</span>
+  </div>
+</div>
+
+<div class="toolbar filter-bar-modern mrp-toolbar">
   <select id=mrpBatchFilter><option value=OPEN>Todas em aberto — A Fazer até Envase</option></select>
-  <select id=mrpView><option value=PLAN selected>Materiais com consumo no plano</option><option value=ACTION>Somente ações de compra</option><option value=P1>Somente P1 — Urgente</option><option value=P2>Somente P2 — Alta</option><option value=P3>Somente P3 — Programar</option><option value=ALL>Todos os materiais</option></select>
-  <input id=mrpQ placeholder="Buscar matéria-prima ou código">
-  <button id=mrpCsv class=primary>Exportar MRP completo (.xlsx)</button><button id=mrpBuyCsv>Exportar somente compras</button>
+  <select id=mrpView><option value=PLAN selected>Materiais com consumo no plano</option><option value=ACTION>Somente ações de compra (P1+P2+P3)</option><option value=P1>Somente P1 — Urgente / Ruptura</option><option value=P2>Somente P2 — Alta / Crítico</option><option value=P3>Somente P3 — Programar Compra</option><option value=ALL>Todos os materiais</option></select>
+  <input id=mrpQ class="search-input-modern" placeholder="🔍 Buscar matéria-prima ou código CIGAM">
+  <button id=mrpCsv class=primary>Exportar MRP completo (.xlsx)</button>
+  <button id=mrpBuyCsv class="btn-outline-modern">Exportar somente compras</button>
 </div>
+
 <div id=mrpProblems></div>
-<div class="viz-panel mrp-chart"><div class=viz-head><div><h3>Maiores compras sugeridas</h3><p>Top 10 em kg, considerando política de estoque e lote de compra.</p></div><span class=viz-tag>Compras</span></div><div id=mrpShortageChart></div></div>
+
+<div class="insight-grid mrp-insights">
+  <div class="viz-panel mrp-chart">
+    <div class=viz-head>
+      <div><h3>Maiores compras sugeridas (Top 10)</h3><p>Ranking em kg e impacto financeiro (R$) considerando lote padrão de compra. Clique na barra para filtrar.</p></div>
+      <span class=viz-tag>Top Reposição</span>
+    </div>
+    <div id=mrpShortageChart></div>
+  </div>
+  <div class="viz-panel mrp-prio-panel">
+    <div class=viz-head>
+      <div><h3>Resumo por Prioridade &amp; Curva ABC</h3><p>Distribuição das necessidades de compra e impacto financeiro por criticidade. Clique para filtrar a tabela.</p></div>
+      <span class=viz-tag>Matriz de Decisão</span>
+    </div>
+    <div id=mrpPriorityChart></div>
+  </div>
+</div>
+
 <div class="viz-panel mrp-buy-view">
-  <div class=viz-head><div><h3>Decisão de Compras</h3><p>Saldo projetado, cobertura, prioridade e valor estimado da reposição.</p></div><span class=viz-tag>MRP + estoque</span></div>
-  <div class=tablewrap><table class=v90-mrp-table><thead><tr>
-  <th>Código</th><th>Matéria-prima</th><th>ABC</th><th>Est. atual</th><th>Necess.</th><th>Saldo proj.</th><th>Mín.</th><th>P. pedido</th><th>Cob.</th><th>LT</th><th>Comp. mín.</th><th>Comp. sug.</th><th>R$ compra</th><th>Prior.</th><th>Sit.</th>
+  <div class=viz-head>
+    <div><h3>Decisão de Compras por Matéria-Prima</h3><p>Análise completa de saldo projetado, cobertura em dias vs. tempo de reposição (Lead Time) e lote sugerido.</p></div>
+    <span class=viz-tag id="mrpTableCountTag">MRP + Política ABC</span>
+  </div>
+  <div class=tablewrap><table class="v90-mrp-table modern-stock-table"><thead><tr>
+  <th class="col-center">Código</th><th>Matéria-prima</th><th class="col-center">ABC</th><th class="col-right">Est. Atual</th><th class="col-right">Necess. Plano</th><th class="col-right">Saldo Proj.</th><th class="col-right">Est. Mín.</th><th class="col-right">P. Pedido</th><th class="col-center">Cobertura</th><th class="col-center">Lead Time</th><th class="col-right">Comp. Mín.</th><th class="col-right">Comp. Sugerida</th><th class="col-right">Valor Compra</th><th class="col-center">Prioridade</th><th class="col-center">Situação</th>
   </tr></thead><tbody id=mrpBody></tbody></table></div>
 </div>
 </section>

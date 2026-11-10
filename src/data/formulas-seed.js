@@ -4766,7 +4766,7 @@ const PROD_FORMULA= [
     "line": "ANVISA"
   },
   {
-    "product": "Tablet Clor",
+    "product": "Tablete Clor",
     "formula": "",
     "relation": "SEM FÓRMULA",
     "note": "Somente rotulagem — não passa pelo tanque/mistura.",

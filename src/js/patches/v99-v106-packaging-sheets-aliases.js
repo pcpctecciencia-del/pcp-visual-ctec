@@ -257,6 +257,84 @@ function v106MergeAliases(){
     if(!canonical && (norm(z.produto||'').includes('DESINCRUSTANTE')||norm(z.item||'').includes('DESINCRUSTANTE')))D.splice(i,1);
   }
   OPS.protevetDesincrustanteV106=true;
+
+  // V108: Unificacao definitiva de Tablet Clor (5L/20L/50L/200L) + 001256 TABLETE CLOR 150GR em Tablete Clor 150GR
+  try{
+    [typeof PACKAGING_MASTER!=='undefined'?PACKAGING_MASTER:null,typeof TANK_MASTER!=='undefined'?TANK_MASTER:null,typeof PROD_FORMULA!=='undefined'?PROD_FORMULA:null].forEach(arr=>{
+      if(Array.isArray(arr))arr.forEach(o=>{if(o&&norm(o.product)==='TABLET CLOR')o.product='Tablete Clor'});
+    });
+    const isTc=z=>{
+      if(!z)return false;
+      const p=norm(z.produto||''),it=norm(z.item||''),cd=v106Code(z.cod);
+      return p==='TABLET CLOR'||p==='TABLETE CLOR'||it.includes('TABLET CLOR')||it.includes('TABLETE CLOR')||cd==='1256';
+    };
+    const tcRows=(D||[]).filter(isTc);
+    let tcTarget=tcRows.find(z=>String(z.ap||'').toUpperCase().includes('150GR'))||tcRows.find(z=>Number(z.ref)>0)||tcRows[0];
+    if(!tcTarget){
+      tcTarget={linha:'ANVISA',produto:'Tablete Clor',ap:'150GR',item:'Tablete Clor 150GR',cod:'001256',ref:24,att:10,est:-24,atual:now,pedidoAtivo:false,hist:[],tipo:'Próprio',semPedido:false};
+      D.push(tcTarget);
+    }
+    tcRows.forEach(r=>{
+      if(r===tcTarget)return;
+      if((tcTarget.est===''||tcTarget.est===null||tcTarget.est===undefined)&&r.est!==''&&r.est!==null&&r.est!==undefined)tcTarget.est=r.est;
+      if((!tcTarget.ref||Number(tcTarget.ref)===0)&&Number(r.ref)>0)tcTarget.ref=r.ref;
+      if((!tcTarget.att||Number(tcTarget.att)===0)&&Number(r.att)>0)tcTarget.att=r.att;
+      if(r.atual&&(!tcTarget.atual||String(r.atual)>String(tcTarget.atual)))tcTarget.atual=r.atual;
+      if(Array.isArray(r.hist)&&r.hist.length)tcTarget.hist=[...(tcTarget.hist||[]),...r.hist];
+    });
+    if(Array.isArray(R)&&R.length){
+      const revIdx=R.findIndex(r=>v106Code(r.cod)==='1256'||/\bTABLETE?\s+CLOR\b/i.test(norm(r.nome||'')));
+      if(revIdx>=0){
+        const rev=R[revIdx];
+        if(rev.est!==undefined&&rev.est!==null&&rev.est!==''){tcTarget.est=rev.est;tcTarget.atual=now;}
+        R.splice(revIdx,1);
+      }
+    }
+    tcTarget.linha=tcTarget.linha&&norm(tcTarget.linha)!=='AMOSTRAS'?tcTarget.linha:'ANVISA';
+    tcTarget.produto='Tablete Clor';
+    tcTarget.ap='150GR';
+    tcTarget.item='Tablete Clor 150GR';
+    tcTarget.cod='001256';
+    tcTarget.tipo='Próprio';
+    tcTarget.semPedido=false;
+    if(tcTarget.ref===''||tcTarget.ref===null||tcTarget.ref===undefined||Number(tcTarget.ref)===0)tcTarget.ref=24;
+    if(tcTarget.att===''||tcTarget.att===null||tcTarget.att===undefined||Number(tcTarget.att)===0)tcTarget.att=10;
+    if(!OPS.tableteClorUnificadoV108 || tcTarget.est==='' || tcTarget.est===null || tcTarget.est===undefined){
+      if(tcTarget.est===''||tcTarget.est===null||tcTarget.est===undefined)tcTarget.est=-24;
+      if(!tcTarget.atual)tcTarget.atual=now;
+      tcTarget.hist=tcTarget.hist||[];
+      if(!tcTarget.hist.some(h=>String(h.evento||'').includes('150GR'))){
+        tcTarget.hist.push({data:now,estoque:tcTarget.est,rel:'001256 — TABLETE CLOR 150GR',evento:'Unificado Tablet Clor + 001256 TABLETE CLOR 150GR (apresentação única 150GR)'});
+      }
+      OPS.tableteClorUnificadoV108=true;
+    }
+    for(let i=D.length-1;i>=0;i--){
+      if(D[i]!==tcTarget && isTc(D[i]))D.splice(i,1);
+    }
+    if(typeof MPS!=='undefined'&&MPS){
+      (MPS.batches||[]).forEach(b=>{
+        if(norm(b.produto)==='TABLET CLOR')b.produto='Tablete Clor';
+        if(b.dist&&typeof b.dist==='object'){
+          ['Tablet Clor 5L','Tablet Clor 20L','Tablet Clor 50L','Tablet Clor 200L','Tablete Clor 5L'].forEach(oldK=>{
+            if(b.dist[oldK]){
+              if(!b.dist['Tablete Clor 150GR'])b.dist['Tablete Clor 150GR']=b.dist[oldK];
+              delete b.dist[oldK];
+            }
+          });
+        }
+      });
+      [MPS.plans,MPS.masterPlans].filter(Boolean).forEach(group=>{
+        Object.values(group).forEach(monthObj=>{
+          if(!monthObj||typeof monthObj!=='object')return;
+          if(monthObj['Tablet Clor 5L']&&!monthObj['Tablete Clor 150GR'])monthObj['Tablete Clor 150GR']=monthObj['Tablet Clor 5L'];
+          ['Tablet Clor 5L','Tablet Clor 20L','Tablet Clor 50L','Tablet Clor 200L'].forEach(k=>delete monthObj[k]);
+          if(monthObj['Tablet Clor']&&!monthObj['Tablete Clor'])monthObj['Tablete Clor']=monthObj['Tablet Clor'];
+          delete monthObj['Tablet Clor'];
+        });
+      });
+    }
+  }catch(e){console.error('V108 Tablete Clor merge',e)}
+
   try{save()}catch(e){console.error('V106 save',e)}
 }
 
@@ -264,6 +342,15 @@ window.v106MergeAliases=v106MergeAliases;
 v106MergeAliases();
 const v106FindPrev=find;
 find=function(c,n){
+  if(v106Code(c)==='1256' || /\bTABLETE?\s+CLOR\b/i.test(norm(n||''))){
+    let x=(D||[]).find(z=>norm(z.produto)==='TABLETE CLOR'||v106Code(z.cod)==='1256');
+    if(!x){
+      x={linha:'ANVISA',produto:'Tablete Clor',ap:'150GR',item:'Tablete Clor 150GR',cod:'001256',ref:24,att:10,est:'',atual:'',pedidoAtivo:false,hist:[],tipo:'Próprio',semPedido:false};
+      D.push(x);
+    }
+    x.produto='Tablete Clor';x.ap='150GR';x.item='Tablete Clor 150GR';x.cod='001256';
+    return x;
+  }
   const rule=v106RuleByCode(c)||v106RuleByName(n);
   if(rule){
     const x=v106CanonicalRow(rule);

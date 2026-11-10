@@ -103,7 +103,7 @@ const PACKAGING_MASTER= [
   },
   {
     "line": "ANVISA",
-    "product": "Tablet Clor",
+    "product": "Tablete Clor",
     "brand": "C-TEC VETERINÁRIA E SANEANTES",
     "packs": {
       "1L": {

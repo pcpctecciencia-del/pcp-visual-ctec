@@ -157,10 +157,12 @@ function applyRemoteRow(row, sourceLabel = 'nuvem') {
       localStorage.setItem('pcp_ctec_mp_policy_v90', JSON.stringify(row.mp_policy));
     }
 
+    const hadTableteV108 = Boolean(OPS && OPS.tableteClorUnificadoV108);
     try { if (typeof window.v102Run === 'function') window.v102Run(); } catch (e) {}
     try { if (typeof window.v104ApplyProFormulaLinks === 'function') window.v104ApplyProFormulaLinks(); } catch (e) {}
     try { if (typeof window.v106MergeAliases === 'function') window.v106MergeAliases(); } catch (e) {}
     try { if (typeof window.v63ApplyAll === 'function') window.v63ApplyAll(); } catch (e) {}
+    const migratedTableteV108 = !hadTableteV108 && Boolean(OPS && OPS.tableteClorUnificadoV108);
 
     // Persistir localmente sem disparar novo push
     origSave();
@@ -204,6 +206,9 @@ function applyRemoteRow(row, sourceLabel = 'nuvem') {
       sourceLabel === 'realtime' ? 'remote' : 'online',
       `Nuvem On • Rev #${localRevision} (${who}${when ? ' às ' + when : ''})`
     );
+    if (migratedTableteV108) {
+      setTimeout(() => { try { scheduleCloudPush(); } catch (e) {} }, 300);
+    }
   } finally {
     isApplyingRemote = false;
   }

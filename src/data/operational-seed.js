@@ -46,7 +46,7 @@ const MPS_BACKUP_SEED = {
         "note": "",
         "cigamDate": ""
       },
-      "Tablet Clor 5L": {
+      "Tablete Clor 150GR": {
         "plannedDate": "",
         "note": "",
         "cigamDate": ""
@@ -1067,7 +1067,7 @@ const MPS_BACKUP_SEED = {
           "qty": 0,
           "note": ""
         },
-        "Tablet Clor 5L": {
+        "Tablete Clor 150GR": {
           "qty": 0,
           "note": ""
         },
@@ -3837,7 +3837,7 @@ const MPS_BACKUP_SEED = {
           "qty": 0,
           "note": ""
         },
-        "Tablet Clor 5L": {
+        "Tablete Clor 150GR": {
           "qty": 0,
           "note": ""
         },
@@ -11080,7 +11080,7 @@ const MPS_BACKUP_SEED = {
           "weight": 2800,
           "note": ""
         },
-        "Tablet Clor": {
+        "Tablete Clor": {
           "tanks": 0,
           "weight": 0,
           "note": ""

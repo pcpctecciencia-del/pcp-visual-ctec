@@ -33,6 +33,7 @@ function apInfo(ap){
   let s=String(ap||'').toUpperCase().replace(',','.').trim();
   if(/150\s*ML|AMOSTRA/.test(s))return{kind:'L',liters:.15,key:'150ML',label:'150ML'};
   let kg=s.match(/([\d.]+)\s*KG/);if(kg)return{kind:'KG',kg:Number(kg[1]),key:kg[1]+'KG',label:kg[1]+'KG'};
+  let gr=s.match(/([\d.]+)\s*GR?\b/);if(gr)return{kind:'KG',kg:Number(gr[1])/1000,key:gr[1]+'GR',label:gr[1]+'GR'};
   let l=s.match(/([\d.]+)\s*L/);if(l)return{kind:'L',liters:Number(l[1]),key:String(Number(l[1]))+'L',label:String(Number(l[1]))+'L'};
   let n=Number(s);if(Number.isFinite(n))return{kind:'L',liters:n,key:String(n)+'L',label:String(n)+'L'};
   return{kind:'OTHER',key:s,label:s}

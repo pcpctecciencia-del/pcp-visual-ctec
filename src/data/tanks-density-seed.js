@@ -49,7 +49,7 @@ const TANK_MASTER= [
   },
   {
     "line": "ANVISA",
-    "product": "Tablet Clor",
+    "product": "Tablete Clor",
     "manufacturing": "Próprio",
     "rule": "Cheia/Meia",
     "mainTank": "NÃO HÁ",

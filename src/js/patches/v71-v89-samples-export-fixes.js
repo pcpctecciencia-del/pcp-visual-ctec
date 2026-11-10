@@ -190,6 +190,7 @@ apInfo=function(ap){
   let s=String(ap??'').toUpperCase().replace(',','.').trim(),compact=s.replace(/\s+/g,'');
   if(v75Is150MlValue(s))return{kind:'L',liters:.15,key:'150ML',label:'150ML'};
   let kg=s.match(/([\d.]+)\s*KG/);if(kg)return{kind:'KG',kg:Number(kg[1]),key:kg[1]+'KG',label:kg[1]+'KG'};
+  let gr=s.match(/([\d.]+)\s*GR?\b/);if(gr)return{kind:'KG',kg:Number(gr[1])/1000,key:gr[1]+'GR',label:gr[1]+'GR'};
   let l=s.match(/([\d.]+)\s*L/);if(l)return{kind:'L',liters:Number(l[1]),key:String(Number(l[1]))+'L',label:String(Number(l[1]))+'L'};
   let n=Number(compact);if(Number.isFinite(n))return{kind:'L',liters:n,key:String(n)+'L',label:String(n)+'L'};
   return{kind:'OTHER',key:s,label:s};
@@ -222,6 +223,7 @@ function v75NormalizeSamples(){
 productSkus=function(prod){
   const all=(D||[]).filter(x=>norm(x.produto)===norm(prod)&&!(isThird(x)&&x.semPedido));
   const main=all.filter(x=>!isSampleSku(x));
+  if(norm(prod)==='TABLETE CLOR'||norm(prod)==='TABLET CLOR')return main;
   const samples=all.filter(isSampleSku).sort((a,b)=>{
     const ar=String(a.cod||'').trim()?0:1, br=String(b.cod||'').trim()?0:1;
     if(ar!==br)return ar-br;

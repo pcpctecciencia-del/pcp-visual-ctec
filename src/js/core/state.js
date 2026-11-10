@@ -68,8 +68,33 @@ function sanitizeData(arr){
     if(p.startsWith('TEC OXI')&&/\b(5|20|50|200)\s*L\b/.test(i))return false;
     if(p==='REMOBAC'&&/\b(5|20|50|200)\s*L\b/.test(i))return false;
     if(p==='PED CASCO PLUS')return false;
+    if((p==='TABLET CLOR'||p==='TABLETE CLOR')&&(/\b(20|50|200)\s*L\b/.test(i)||/150\s*ML|AMOSTRA/.test(i)))return false;
     return true;
   });
+  let tcRows=out.filter(x=>{
+    let p=String(x.produto||'').trim().toUpperCase(),i=String(x.item||'').trim().toUpperCase(),c=String(x.cod||'').replace(/\D/g,'').replace(/^0+/,'');
+    return p==='TABLET CLOR'||p==='TABLETE CLOR'||i.includes('TABLET CLOR')||i.includes('TABLETE CLOR')||c==='1256';
+  });
+  if(tcRows.length){
+    let main=tcRows.find(x=>String(x.ap||'').toUpperCase().includes('150'))||tcRows.find(x=>Number(x.ref)>0)||tcRows[0];
+    tcRows.forEach(r=>{
+      if(r===main)return;
+      if((main.est===''||main.est===null||main.est===undefined)&&r.est!==''&&r.est!==null&&r.est!==undefined)main.est=r.est;
+      if(!Number(main.ref)&&Number(r.ref)>0)main.ref=r.ref;
+      if(!Number(main.att)&&Number(r.att)>0)main.att=r.att;
+      if(Array.isArray(r.hist)&&r.hist.length)main.hist=[...(main.hist||[]),...r.hist];
+    });
+    main.linha=main.linha||'ANVISA';
+    main.produto='Tablete Clor';
+    main.ap='150GR';
+    main.item='Tablete Clor 150GR';
+    main.cod='001256';
+    if(main.ref===''||main.ref===null||main.ref===undefined||Number(main.ref)===0)main.ref=24;
+    if(main.att===''||main.att===null||main.att===undefined||Number(main.att)===0)main.att=10;
+    out=out.filter(x=>!tcRows.includes(x)||x===main);
+  }else{
+    out.push({linha:'ANVISA',produto:'Tablete Clor',ap:'150GR',item:'Tablete Clor 150GR',cod:'001256',ref:24,att:10,est:-24,atual:'10/11/2026',pedidoAtivo:false,hist:[],tipo:'Próprio',semPedido:false});
+  }
   const ensure=(produto,kg,cod='')=>{
     let item=`${produto} ${kg}KG`,x=out.find(z=>String(z.item||'').trim().toUpperCase()===item.toUpperCase());
     if(x){x.ap=`${kg} KG`;if(cod&&!String(x.cod||'').trim())x.cod=cod;return}

@@ -2061,27 +2061,30 @@ renderDashboardCharts=function(rows){
 
   if(!statusBox||!riskBox)return;
 
+  let curSt=$('st')?.value||'',curLine=$('linha')?.value||'';
   const total=Math.max(rows.length,1),
         groups=[
-          ['NORMAL','Normal','fill-normal'],
-          ['ABAIXO DA REFERÊNCIA','Abaixo da referência','fill-abaixo'],
-          ['ATENÇÃO','Atenção','fill-atencao'],
-          ['CRÍTICO','Crítico','fill-critico'],
-          ['AGUARDANDO ESTOQUE','Aguardando','fill-outros'],
-          ['SOB DEMANDA','Sob demanda','fill-outros']
+          ['NORMAL','Normal','fill-normal','dot-normal'],
+          ['ABAIXO DA REFERÊNCIA','Abaixo da referência','fill-abaixo','dot-abaixo'],
+          ['ATENÇÃO','Atenção','fill-atencao','dot-atencao'],
+          ['CRÍTICO','Crítico','fill-critico','dot-critico'],
+          ['AGUARDANDO ESTOQUE','Aguardando','fill-outros','dot-outros'],
+          ['SOB DEMANDA','Sob demanda','fill-outros','dot-outros']
         ];
 
   statusBox.innerHTML=
-    `<div class=hbar-list>${
-      groups.map(([key,label,cls])=>{
+    `<div class="hbar-list interactive-chart-list">${
+      groups.map(([key,label,cls,dotCls])=>{
         let n=rows.filter(x=>stat(x)===key).length,
-            p=n*100/total;
-        return `<div class=hbar-row>
-          <div class=hbar-label>${label}</div>
+            p=rows.length?(n*100/total):0,
+            pctTxt=Math.round(p)+'%',
+            isAct=curSt===key;
+        return `<div class="hbar-row clickable-row ${isAct?'active-chart-row':''}" onclick="if(typeof filterDashByStatus==='function')filterDashByStatus('${escHtml(key)}')" title="Clique para filtrar por ${escHtml(label)}">
+          <div class=hbar-label><span class="status-dot ${dotCls}"></span><span>${label}</span></div>
           <div class=hbar-track>
-            <div class="hbar-fill ${cls}" style="width:${p}%"></div>
+            <div class="hbar-fill ${cls}" style="width:${Math.max(n>0?3:0,p)}%"></div>
           </div>
-          <div class=hbar-value>${n}</div>
+          <div class=hbar-value><b class="hbar-num">${n}</b><span class="hbar-pct">${pctTxt}</span></div>
         </div>`
       }).join('')
     }</div>`;
@@ -2118,16 +2121,22 @@ renderDashboardCharts=function(rows){
   let max=Math.max(...arr.map(r=>r.crit+r.att+r.below),1);
 
   riskBox.innerHTML=legend+
-    `<div class=risk-line-list>${
-      arr.map(r=>`<div class=risk-line-row>
-        <div class=risk-line-name title="${escHtml(r.name)}">${escHtml(r.name)}</div>
+    `<div class="risk-line-list interactive-chart-list">${
+      arr.map(r=>{
+        let isAct=curLine===r.name;
+        return `<div class="risk-line-row clickable-row ${isAct?'active-chart-row':''}" onclick="if(typeof filterDashByLine==='function')filterDashByLine('${escHtml(r.name)}')" title="Clique para filtrar a linha ${escHtml(r.name)}">
+        <div class=risk-line-name title="${escHtml(r.name)}">${typeof dashLineBadge==='function'?dashLineBadge(r.name):escHtml(r.name)}</div>
         <div class=risk-line-track>
           <span class=crit style="width:${r.crit/max*100}%"></span>
           <span class=att style="width:${r.att/max*100}%"></span>
           <span class=below style="width:${r.below/max*100}%"></span>
         </div>
-        <div class=risk-line-val>${r.crit} C • ${r.att} A • ${r.below} R</div>
-      </div>`).join('')
+        <div class=risk-line-val>
+          <span class="risk-pill crit ${r.crit===0?'zero':''}">${r.crit} C</span>
+          <span class="risk-pill att ${r.att===0?'zero':''}">${r.att} A</span>
+          <span class="risk-pill below ${r.below===0?'zero':''}">${r.below} R</span>
+        </div>
+      </div>`}).join('')
     }</div>`
 };
 

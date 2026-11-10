@@ -31,32 +31,14 @@ function dashTipoBadge(x){
   return `<span class="tipo-pill ${isThird(x)?'terc':'prop'}">${escHtml(t)}</span>`;
 }
 function dashStockCell(x){
-  let e=N(x?.est),r=N(x?.ref),a=N(x?.att),s=stat(x);
+  let e=N(x?.est),s=stat(x);
   let valCls='val-normal';
   if(s==='CRÍTICO')valCls='val-critico';
   else if(s==='ATENÇÃO')valCls='val-atencao';
   else if(s==='ABAIXO DA REFERÊNCIA')valCls='val-abaixo';
   else if(s!=='NORMAL')valCls='val-outros';
   let valTxt=e!==null?e:(x?.est!==''&&x?.est!==undefined&&x?.est!==null?escHtml(x.est):'—');
-  let deltaHtml='',barHtml='';
-  if(e!==null&&r!==null&&r>0){
-    let pct=Math.max(0,Math.min(100,Math.round((e/r)*100)));
-    let fillCls=s==='CRÍTICO'?'fill-critico':s==='ATENÇÃO'?'fill-atencao':s==='ABAIXO DA REFERÊNCIA'?'fill-abaixo':'fill-normal';
-    barHtml=`<div class="stock-mini-bar" title="${pct}% da referência (${e} de ${r})"><span class="${fillCls}" style="width:${pct}%"></span></div>`;
-    let diff=Math.round((e-r)*100)/100;
-    if(e<0)deltaHtml=`<span class="stock-delta-pill crit">Negativo (${diff} p/ ref.)</span>`;
-    else if(e===0)deltaHtml=`<span class="stock-delta-pill att">Zerado (${diff} p/ ref.)</span>`;
-    else if(diff<0)deltaHtml=`<span class="stock-delta-pill ${s==='ATENÇÃO'?'att':'below'}">${diff} p/ ref.</span>`;
-    else if(diff===0)deltaHtml=`<span class="stock-delta-pill ok">100% da meta</span>`;
-    else deltaHtml=`<span class="stock-delta-pill ok">+${diff} acima</span>`;
-  }else if(e!==null&&e<0){
-    deltaHtml=`<span class="stock-delta-pill crit">Saldo negativo</span>`;
-  }else if(s==='SOB DEMANDA'){
-    deltaHtml=`<span class="stock-delta-pill muted">Sob demanda</span>`;
-  }else if(e===null){
-    deltaHtml=`<span class="stock-delta-pill muted">Aguardando leitura</span>`;
-  }
-  return `<div class="stock-cell-wrap"><div class="stock-cell-top"><b class="stock-val ${valCls}">${valTxt}</b>${deltaHtml}</div>${barHtml}</div>`;
+  return `<b class="stock-val ${valCls}">${valTxt}</b>`;
 }
 function dashDateCell(atual){
   let raw=String(atual||'').trim();
@@ -85,12 +67,12 @@ function render(){
       <td>${dashLineBadge(x.linha)}</td>
       <td><div class="prod-cell"><b>${escHtml(x.produto||x.item||'')}</b><span class="prod-sku-sub">${escHtml(x.item||'')}</span></div></td>
       <td>${dashTipoBadge(x)}</td>
-      <td>${dashApBadge(x.ap,x.item)}</td>
-      <td><span class="cigam-pill">${escHtml(x.cod||'—')}</span></td>
-      <td><span class="num-ref">${x.ref!==''&&x.ref!==null&&x.ref!==undefined?x.ref:'—'}</span></td>
-      <td><span class="num-att">${x.att!==''&&x.att!==null&&x.att!==undefined?x.att:'—'}</span></td>
-      <td>${dashStockCell(x)}</td>
-      <td>${badge(stat(x))}</td>
+      <td class="col-center">${dashApBadge(x.ap,x.item)}</td>
+      <td class="col-center"><span class="cigam-pill">${escHtml(x.cod||'—')}</span></td>
+      <td class="col-center"><span class="num-ref">${x.ref!==''&&x.ref!==null&&x.ref!==undefined?x.ref:'—'}</span></td>
+      <td class="col-center"><span class="num-att">${x.att!==''&&x.att!==null&&x.att!==undefined?x.att:'—'}</span></td>
+      <td class="col-center">${dashStockCell(x)}</td>
+      <td class="col-center">${badge(stat(x))}</td>
       <td>${dashDateCell(x.atual)}</td>
     </tr>`).join(''):`<tr><td colspan="10" class="empty-table-msg">Nenhum item encontrado para os filtros selecionados.</td></tr>`;
     $('body').querySelectorAll('tr[data-i]').forEach(t=>t.onclick=()=>openItem(decodeURIComponent(t.dataset.i)));
@@ -133,13 +115,13 @@ function render(){
     $('body2').innerHTML=f2.length?f2.map(x=>`<tr data-i="${encodeURIComponent(x.item)}" class="${dashRowTone(x)}">
       <td>${dashLineBadge(x.linha)}</td>
       <td><div class="prod-cell"><b>${escHtml(x.produto||x.item||'')}</b><span class="prod-sku-sub">${escHtml(x.item||'')}</span></div></td>
-      <td>${dashApBadge(x.ap,x.item)}</td>
+      <td class="col-center">${dashApBadge(x.ap,x.item)}</td>
       <td>${dashTipoBadge(x)}</td>
-      <td><span class="cigam-pill">${escHtml(x.cod||'—')}</span></td>
-      <td><span class="num-ref">${x.ref!==''&&x.ref!==null&&x.ref!==undefined?x.ref:'—'}</span></td>
-      <td><span class="num-att">${x.att!==''&&x.att!==null&&x.att!==undefined?x.att:'—'}</span></td>
-      <td>${dashStockCell(x)}</td>
-      <td>${badge(stat(x))}</td>
+      <td class="col-center"><span class="cigam-pill">${escHtml(x.cod||'—')}</span></td>
+      <td class="col-center"><span class="num-ref">${x.ref!==''&&x.ref!==null&&x.ref!==undefined?x.ref:'—'}</span></td>
+      <td class="col-center"><span class="num-att">${x.att!==''&&x.att!==null&&x.att!==undefined?x.att:'—'}</span></td>
+      <td class="col-center">${dashStockCell(x)}</td>
+      <td class="col-center">${badge(stat(x))}</td>
       <td>${dashDateCell(x.atual)}</td>
     </tr>`).join(''):`<tr><td colspan="10" class="empty-table-msg">Nenhum item encontrado para os filtros selecionados.</td></tr>`;
     $('body2').querySelectorAll('tr[data-i]').forEach(t=>t.onclick=()=>openItem(decodeURIComponent(t.dataset.i)));

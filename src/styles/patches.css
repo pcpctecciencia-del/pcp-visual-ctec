@@ -952,12 +952,20 @@ body:not(.print-week-share):not(.print-daily) .wrap>section.panel.active{display
 .status-dot.dot-critico { background: #dc2626; }
 .status-dot.dot-outros { background: #64748b; }
 
+#statusOverviewChart .hbar-row,
+.viz-panel .hbar-row {
+  grid-template-columns: minmax(130px, 1.15fr) minmax(100px, 2.2fr) minmax(88px, auto) !important;
+  gap: 10px !important;
+  padding: 6px 10px !important;
+  box-sizing: border-box !important;
+}
 .hbar-value {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 6px;
-  min-width: 82px;
+  min-width: 0 !important;
+  white-space: nowrap;
 }
 .hbar-num {
   font-size: 13px;
@@ -974,9 +982,11 @@ body:not(.print-week-share):not(.print-daily) .wrap>section.panel.active{display
 }
 
 .risk-line-row {
-  grid-template-columns: minmax(175px, 1.15fr) 1.4fr auto !important;
+  grid-template-columns: minmax(175px, 1.15fr) minmax(100px, 1.5fr) auto !important;
   gap: 10px !important;
+  padding: 6px 10px !important;
   align-items: center;
+  box-sizing: border-box !important;
 }
 .risk-line-val {
   display: flex;
@@ -1086,11 +1096,17 @@ body:not(.print-week-share):not(.print-daily) .wrap>section.panel.active{display
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding: 11px 10px !important;
+  text-align: left;
 }
 .dash-product-table td {
   padding: 10px 10px !important;
   vertical-align: middle !important;
   font-size: 12.5px !important;
+  text-align: left;
+}
+.dash-product-table th.col-center,
+.dash-product-table td.col-center {
+  text-align: center !important;
 }
 .dash-product-table tbody tr {
   transition: background 0.12s ease;

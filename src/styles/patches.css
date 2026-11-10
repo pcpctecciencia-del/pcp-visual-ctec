@@ -1994,3 +1994,291 @@ body:not(.print-week-share):not(.print-daily) .wrap>section.panel.active{display
     grid-template-columns: 1fr !important;
   }
 }
+
+/* ==========================================================================
+   V110 — Otimizacao Visual e Didatica da Aba Materias-Primas (#materiais)
+   ========================================================================== */
+
+#materiais .mat-kpi-cards {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+  margin-bottom: 14px !important;
+}
+
+.mat-import-modern {
+  display: grid !important;
+  grid-template-columns: 1.15fr 0.85fr !important;
+  gap: 14px !important;
+  margin-bottom: 16px !important;
+}
+.mat-import-box,
+.mat-history-box {
+  margin: 0 !important;
+  padding: 16px 18px !important;
+  border-radius: 14px !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+}
+.mat-box-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.mat-box-head h3 {
+  margin: 0 0 3px !important;
+  font-size: 15px !important;
+  color: #0f172a !important;
+}
+.mat-box-head p {
+  margin: 0 !important;
+  font-size: 12px !important;
+  color: #64748b !important;
+}
+.mat-import-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 8px;
+}
+.mat-upload-btn {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 15px !important;
+  border-radius: 10px !important;
+  font-weight: 800 !important;
+  cursor: pointer;
+}
+.mp-source-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  font-size: 12px;
+  color: #334155;
+}
+.mat-import-msg {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #166534;
+}
+.mat-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 125px;
+  overflow-y: auto;
+}
+.mat-hist-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  font-size: 12px;
+}
+.mat-hist-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.mat-hist-left b {
+  color: #0f172a;
+  white-space: nowrap;
+}
+.mat-hist-left span {
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mat-hist-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* Graficos Duplos de Materias-Primas */
+.mat-insights {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.mat-chart-list .mat-bar-row {
+  display: grid !important;
+  grid-template-columns: minmax(175px, 1.35fr) minmax(90px, 1fr) auto !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 6px 8px !important;
+  border-radius: 8px;
+}
+.mat-bar-label {
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  min-width: 0 !important;
+}
+.mat-mini-code {
+  display: inline-flex;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: #f1f5f9;
+  color: #475569;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.mat-bar-val {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  justify-content: center !important;
+  min-width: 88px;
+  text-align: right !important;
+  line-height: 1.15 !important;
+}
+.mat-bar-val b {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+.mat-bar-val small {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tabela Padronizada de Materias-Primas */
+.mat-catalog-table th {
+  font-size: 11px !important;
+  padding: 10px 10px !important;
+}
+.mat-catalog-table td {
+  padding: 9px 10px !important;
+  vertical-align: middle !important;
+}
+.mat-qsp-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  margin-left: 6px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 10px;
+  font-weight: 800;
+}
+.mat-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+.mat-more-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+/* Modal de Historico de Materia-Prima (#mpHistoryDlg) */
+#mpHistoryDlg {
+  width: min(920px, 95vw) !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  border-radius: 16px !important;
+  border: 0 !important;
+  padding: 0 !important;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28) !important;
+}
+#mpHistoryDlg .mh {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px !important;
+  background: #1e293b !important;
+  color: #ffffff !important;
+}
+.mp-dlg-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+#mpHistoryDlg .mb {
+  padding: 18px 20px !important;
+  background: #f8fafc;
+}
+#mpHistSummary.v41-mp-summary {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  margin-bottom: 14px !important;
+}
+#mpHistChart.v41-mp-chart {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+.mp-chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #0f172a;
+}
+.mp-chart-head span {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+@media (max-width: 1100px) {
+  #materiais .mat-kpi-cards {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .mat-import-modern,
+  .mat-insights {
+    grid-template-columns: 1fr !important;
+  }
+  #mpHistSummary.v41-mp-summary {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+@media (max-width: 640px) {
+  #materiais .mat-kpi-cards,
+  #mpHistSummary.v41-mp-summary {
+    grid-template-columns: 1fr !important;
+  }
+}

@@ -184,18 +184,193 @@ window.v41BombPng=v41BombPng;
 function v41MaterialSnapshots(){MP.snapshots=Array.isArray(MP.snapshots)?MP.snapshots:[];if(!MP.snapshots.length&&MP.stock&&Object.keys(MP.stock).length){MP.snapshots.push({at:MP.updated||new Date().toLocaleString('pt-BR'),file:MP.source||'Base inicial',stock:structuredClone(MP.stock)})}return MP.snapshots}
 function v41MaterialChart(points){
   if(!points.length)return'<div class=chartempty>O histórico começará a ser formado nas próximas importações.</div>';
-  let W=860,H=220,L=55,R=20,T=20,B=38,vals=points.map(p=>Number(p.value)||0),min=Math.min(...vals),max=Math.max(...vals);if(max===min){max=min+1}let x=i=>L+(W-L-R)*(points.length===1?0.5:i/(points.length-1)),y=v=>T+(H-T-B)*(1-(v-min)/(max-min)),poly=points.map((p,i)=>`${x(i)},${y(p.value)}`).join(' ');
-  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:220px"><line x1="${L}" y1="${H-B}" x2="${W-R}" y2="${H-B}" stroke="#cbd5e1"/><line x1="${L}" y1="${T}" x2="${L}" y2="${H-B}" stroke="#cbd5e1"/><polyline points="${poly}" fill="none" stroke="#d71920" stroke-width="3"/>${points.map((p,i)=>`<circle cx="${x(i)}" cy="${y(p.value)}" r="4" fill="#d71920"><title>${escHtml(p.at)}: ${stockFmt(p.value)} kg</title></circle>`).join('')}<text x="${L-8}" y="${T+5}" text-anchor="end" font-size="11">${stockFmt(max)}</text><text x="${L-8}" y="${H-B}" text-anchor="end" font-size="11">${stockFmt(min)}</text></svg>`
+  let W=860,H=225,L=62,R=26,T=26,B=42,vals=points.map(p=>Number(p.value)||0),min=Math.min(...vals),max=Math.max(...vals);
+  if(max===min){max=min+1}
+  let x=i=>L+(W-L-R)*(points.length===1?0.5:i/(points.length-1)),y=v=>T+(H-T-B)*(1-(v-min)/(max-min));
+  let poly=points.map((p,i)=>`${x(i)},${y(p.value)}`).join(' ');
+  let area=`${x(0)},${H-B} ${poly} ${x(points.length-1)},${H-B}`;
+  let mid=(min+max)/2;
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:225px;overflow:visible">
+    <defs><linearGradient id="mpChartGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2563eb" stop-opacity="0.20"/><stop offset="100%" stop-color="#2563eb" stop-opacity="0.01"/></linearGradient></defs>
+    <line x1="${L}" y1="${T}" x2="${W-R}" y2="${T}" stroke="#f1f5f9" stroke-dasharray="4 4"/>
+    <line x1="${L}" y1="${(T+H-B)/2}" x2="${W-R}" y2="${(T+H-B)/2}" stroke="#f1f5f9" stroke-dasharray="4 4"/>
+    <line x1="${L}" y1="${H-B}" x2="${W-R}" y2="${H-B}" stroke="#cbd5e1"/>
+    <line x1="${L}" y1="${T}" x2="${L}" y2="${H-B}" stroke="#cbd5e1"/>
+    <polygon points="${area}" fill="url(#mpChartGrad)"/>
+    <polyline points="${poly}" fill="none" stroke="#2563eb" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"/>
+    ${points.map((p,i)=>{
+      let cx=x(i),cy=y(p.value),showLbl=points.length<=12||i===0||i===points.length-1||p.value===max||p.value===min;
+      return `<g><circle cx="${cx}" cy="${cy}" r="4.5" fill="#ffffff" stroke="#2563eb" stroke-width="2.5"><title>${escHtml(p.at)}: ${stockFmt(p.value)} kg</title></circle>${showLbl?`<text x="${cx}" y="${cy-9}" text-anchor="middle" font-size="10" font-weight="800" fill="#1e293b">${stockFmt(p.value)}</text>`:''}</g>`;
+    }).join('')}
+    <text x="${L-8}" y="${T+4}" text-anchor="end" font-size="10.5" font-weight="700" fill="#64748b">${stockFmt(max)}</text>
+    <text x="${L-8}" y="${(T+H-B)/2+4}" text-anchor="end" font-size="10" fill="#94a3b8">${stockFmt(mid)}</text>
+    <text x="${L-8}" y="${H-B}" text-anchor="end" font-size="10.5" font-weight="700" fill="#64748b">${stockFmt(min)}</text>
+    <text x="${L}" y="${H-14}" text-anchor="start" font-size="10.5" font-weight="600" fill="#64748b">${escHtml(points[0]?.at||'')}</text>
+    ${points.length>1?`<text x="${W-R}" y="${H-14}" text-anchor="end" font-size="10.5" font-weight="600" fill="#64748b">${escHtml(points.at(-1)?.at||'')}</text>`:''}
+  </svg>`
 }
 function v41OpenMaterial(name){
-  let snaps=v41MaterialSnapshots(),pts=snaps.map(s=>({at:s.at||s.date||'',file:s.file||'',value:N(s.stock?.[name])})).filter(p=>p.value!==null),cur=mpStock(name),vals=pts.map(p=>p.value),last=pts.at(-1)?.value??cur,prev=pts.length>1?pts.at(-2).value:null,delta=prev===null?null:last-prev;
-  $('mpHistTitle').textContent=name;$('mpHistSummary').innerHTML=`<div><small>Estoque atual</small><b>${stockFmt(cur)} kg</b></div><div><small>Última variação</small><b>${delta===null?'—':(delta>=0?'+':'')+stockFmt(delta)+' kg'}</b></div><div><small>Menor registro</small><b>${vals.length?stockFmt(Math.min(...vals))+' kg':'—'}</b></div><div><small>Maior registro</small><b>${vals.length?stockFmt(Math.max(...vals))+' kg':'—'}</b></div>`;$('mpHistChart').innerHTML=v41MaterialChart(pts.slice(-30));$('mpHistTable').innerHTML=pts.length?`<table><thead><tr><th>Data/hora</th><th>Estoque kg</th><th>Arquivo</th></tr></thead><tbody>${pts.slice().reverse().map(p=>`<tr><td>${escHtml(p.at)}</td><td>${stockFmt(p.value)}</td><td>${escHtml(p.file)}</td></tr>`).join('')}</tbody></table>`:'Sem histórico de importações para este material.';$('mpHistoryDlg').showModal()
+  let snaps=v41MaterialSnapshots(),allPts=snaps.map(s=>({at:s.at||s.date||'',file:s.file||'',value:N(s.stock?.[name])})).filter(p=>p.value!==null),pts=allPts.slice(-20),cur=mpStock(name),vals=pts.map(p=>p.value),last=pts.at(-1)?.value??cur,prev=pts.length>1?pts.at(-2).value:null,delta=prev===null?null:last-prev;
+  let code=(MP.codes||{})[name]||(typeof MATERIAL_CIGAM_BY_NAME!=='undefined'?MATERIAL_CIGAM_BY_NAME[name]:'')||'—';
+  let rec=materialRows().find(r=>r.material===name);
+  $('mpHistTitle').innerHTML=`<div class="mp-dlg-title-wrap"><span>${escHtml(name)}</span><span class="cigam-code">Cód. ${escHtml(code)}</span></div>`;
+  $('mpHistSummary').innerHTML=`
+    <div class="item-kpi-card accent-blue"><small>Estoque Atual</small><b>${stockFmt(cur)} kg</b><span class="item-kpi-sub">Posição ativa no sistema</span></div>
+    <div class="item-kpi-card ${delta!==null&&delta<0?'accent-red':'accent-green'}"><small>Última Variação</small><b>${delta===null?'—':(delta>=0?'+':'')+stockFmt(delta)+' kg'}</b><span class="item-kpi-sub">${pts.length} de ${allPts.length} leituras exibidas</span></div>
+    <div class="item-kpi-card accent-slate"><small>Menor / Maior (Últ. 20)</small><b>${vals.length?stockFmt(Math.min(...vals))+' / '+stockFmt(Math.max(...vals))+' kg':'—'}</b><span class="item-kpi-sub">Faixa recente de oscilação</span></div>
+    <div class="item-kpi-card accent-amber"><small>Presença na Engenharia</small><b>${rec?rec.count+' fórmula(s)':'—'}</b><span class="item-kpi-sub">${rec&&rec.max?'De '+pctFmt(rec.min)+' a '+pctFmt(rec.max):'Sem vínculo direto'}</span></div>`;
+  $('mpHistChart').innerHTML=`<div class="mp-chart-head"><b>Evolução do Estoque (Últimas 20 Leituras)</b><span>Valores em kg</span></div>`+v41MaterialChart(pts);
+  $('mpHistTable').innerHTML=allPts.length?`<table class="modern-stock-table item-hist-table"><thead><tr><th>Data / Hora</th><th class="col-right">Estoque (kg)</th><th class="col-center">Variação</th><th>Arquivo / Origem</th></tr></thead><tbody>${allPts.slice().reverse().slice(0,20).map((p,idx,arr)=>{
+    let nextOld=arr[idx+1],d=nextOld?p.value-nextOld.value:null;
+    let dHtml=d===null?'<span class="hist-delta-pill eq">—</span>':d>0?`<span class="hist-delta-pill up">+${stockFmt(d)} kg</span>`:d<0?`<span class="hist-delta-pill down">${stockFmt(d)} kg</span>`:`<span class="hist-delta-pill eq">0 kg</span>`;
+    return `<tr><td><b>${escHtml(p.at)}</b></td><td class="col-right"><span class="hist-stock-num">${stockFmt(p.value)} kg</span></td><td class="col-center">${dHtml}</td><td><span class="hist-rel-pill">${escHtml(p.file||'Relatório CIGAM')}</span></td></tr>`;
+  }).join('')}</tbody></table>`:'<div class="empty-table-msg">Sem histórico de importações para este material.</div>';
+  $('mpHistoryDlg').showModal()
 }
 window.v41OpenMaterial=v41OpenMaterial;
+
+window.filterMatByCard=function(mode){
+  const fEl=$('matFreq'),cEl=$('matCadastro'),qEl=$('matQ');
+  if(!fEl||!cEl)return;
+  if(mode==='ALL'){
+    fEl.value='';cEl.value='';if(qEl){qEl.value='';delete qEl.dataset.fromChart;}
+  }else if(mode==='COM'){
+    cEl.value=(cEl.value==='COM'?'':'COM');fEl.value='';
+  }else if(mode==='SEM'){
+    cEl.value=(cEl.value==='SEM'?'':'SEM');fEl.value='';
+  }else if(mode==='FREQ5'){
+    fEl.value=(fEl.value==='5'?'':'5');cEl.value='';
+  }
+  renderMaterials();
+};
+window.filterMatByName=function(name){
+  const qEl=$('matQ');
+  if(!qEl)return;
+  if(qEl.value.trim().toUpperCase()===String(name||'').trim().toUpperCase()){
+    qEl.value='';delete qEl.dataset.fromChart;
+  }else{
+    qEl.value=name;qEl.dataset.fromChart='1';
+  }
+  renderMaterials();
+};
+renderMaterialTopChart=function(rows){
+  let box=document.getElementById('matTopChart');
+  let sbox=document.getElementById('matStockChart');
+  rows=Array.isArray(rows)?rows:[];
+  const activeQ=($('matQ')?.value||'').trim().toUpperCase();
+  if(box){
+    let top=rows.filter(r=>r.count>0).sort((a,b)=>b.count-a.count||a.material.localeCompare(b.material,'pt-BR')).slice(0,10);
+    let max=Math.max(...top.map(r=>Number(r.count)||0),1);
+    if(!top.length){
+      box.innerHTML='<div class=chartempty>Sem matérias-primas para exibir.</div>';
+    }else{
+      box.innerHTML=`<div class="hbar-list mat-chart-list">${top.map(r=>{
+        let isSel=activeQ&&activeQ===r.material.toUpperCase();
+        let safeName=escHtml(r.material).replace(/'/g,"&#39;");
+        return `<div class="hbar-row interactive-row mat-bar-row ${isSel?'active-filter':''}" onclick="filterMatByName('${safeName}')" title="Clique para filtrar ${escHtml(r.material)} na tabela">
+          <div class="hbar-label mat-bar-label">
+            <span class="mat-mini-code">${escHtml(r.code||'—')}</span>
+            <span class="hbar-label-text" title="${escHtml(r.material)}">${escHtml(r.material)}</span>
+          </div>
+          <div class="hbar-track"><div class="hbar-fill fill-normal" style="width:${Math.max(6,(Number(r.count)||0)/max*100)}%"></div></div>
+          <div class="hbar-value mat-bar-val">
+            <b>${Number(r.count)||0} fórm.</b>
+            <small>${r.stock!==null?stockFmt(r.stock)+' kg':'Sem saldo'}</small>
+          </div>
+        </div>`;
+      }).join('')}</div>`;
+    }
+  }
+  if(sbox){
+    let allRows=materialRows();
+    let topStock=allRows.filter(r=>r.stock!==null&&r.stock>0).sort((a,b)=>b.stock-a.stock).slice(0,10);
+    let maxS=Math.max(...topStock.map(r=>Number(r.stock)||0),1);
+    if(!topStock.length){
+      sbox.innerHTML='<div class=chartempty>Nenhum saldo positivo registrado.</div>';
+    }else{
+      sbox.innerHTML=`<div class="hbar-list mat-chart-list">${topStock.map(r=>{
+        let isSel=activeQ&&activeQ===r.material.toUpperCase();
+        let safeName=escHtml(r.material).replace(/'/g,"&#39;");
+        return `<div class="hbar-row interactive-row mat-bar-row ${isSel?'active-filter':''}" onclick="filterMatByName('${safeName}')" title="Clique para filtrar ${escHtml(r.material)} na tabela">
+          <div class="hbar-label mat-bar-label">
+            <span class="mat-mini-code">${escHtml(r.code||'—')}</span>
+            <span class="hbar-label-text" title="${escHtml(r.material)}">${escHtml(r.material)}</span>
+          </div>
+          <div class="hbar-track"><div class="hbar-fill stack-Plan" style="width:${Math.max(6,(Number(r.stock)||0)/maxS*100)}%;background:linear-gradient(90deg,#2563eb,#3b82f6)"></div></div>
+          <div class="hbar-value mat-bar-val">
+            <b>${stockFmt(r.stock)} kg</b>
+            <small>${r.count} fórmula(s)</small>
+          </div>
+        </div>`;
+      }).join('')}</div>`;
+    }
+  }
+};
+renderMpHistory=function(){
+  if(!$('mpHistory'))return;
+  if($('mpSource'))$('mpSource').innerHTML=`<b>Posição atual:</b> ${escHtml(MP.updated||'—')} <span class="muted">• ${escHtml(MP.source||'Base padrão')}</span>`;
+  let h=(MP.history||[]).slice().reverse().slice(0,6);
+  $('mpHistory').innerHTML=h.length?h.map(x=>`<div class="mat-hist-item"><div class="mat-hist-left"><b>${escHtml(x.date||'')}</b><span>${escHtml(x.file||'Relatório PDF')}</span></div><span class="mat-hist-badge">${x.items||0} MPs</span></div>`).join(''):'<div class="muted">Nenhuma atualização diária importada ainda.</div>';
+};
 renderMaterials=function(){
-  if(!$('matBody'))return;let rows=materialRows(),q=($('matQ')?.value||'').trim().toUpperCase(),f=Number($('matFreq')?.value||0),cad=$('matCadastro')?.value||'',out=rows.filter(r=>(!f||r.count>=f)&&(!q||`${r.material} ${r.code} ${r.formulas.join(' ')}`.toUpperCase().includes(q))&&(!cad||(cad==='COM'?r.stock!==null:r.stock===null)));
-  $('matBody').innerHTML=out.map(r=>`<tr class=v41-mp-row data-v41-mp="${encodeURIComponent(r.material)}"><td>${escHtml(r.code||'—')}</td><td><b>${escHtml(r.material)}</b>${r.zero?` <span class="eng-status eng-none">${r.zero} zero/QSP</span>`:''}<div class=v41-queue-note>Clique para ver histórico de estoque</div></td><td class=percent>${stockFmt(r.stock)}</td><td>${r.count}</td><td class=percent>${r.max?pctFmt(r.max):'—'}</td><td class=percent>${r.min?pctFmt(r.min):'—'}</td><td>${r.stock!==null?'<span class="eng-status eng-base">ATUALIZADO</span>':'<span class="eng-status eng-pend">SEM SALDO</span>'}</td><td>${r.formulas.slice(0,7).map(x=>`<span class=material-chip>${escHtml(x)}</span>`).join('')}${r.formulas.length>7?` <span class=muted>+${r.formulas.length-7}</span>`:''}</td></tr>`).join('');
-  $('matBody').querySelectorAll('[data-v41-mp]').forEach(tr=>tr.onclick=()=>v41OpenMaterial(decodeURIComponent(tr.dataset.v41Mp)));$('matCount').textContent=rows.length;$('matStocked').textContent=rows.filter(r=>r.stock!==null).length;$('matNoStock').textContent=rows.filter(r=>r.stock===null).length;$('matZero').textContent=rows.reduce((a,r)=>a+r.zero,0);renderMaterialTopChart(rows.filter(r=>r.count>0));renderMpHistory()
+  if(!$('matBody'))return;
+  let rows=materialRows(),q=($('matQ')?.value||'').trim().toUpperCase(),f=Number($('matFreq')?.value||0),cad=$('matCadastro')?.value||'';
+  let out=rows.filter(r=>(!f||r.count>=f)&&(!q||`${r.material} ${r.code} ${r.formulas.join(' ')}`.toUpperCase().includes(q))&&(!cad||(cad==='COM'?r.stock!==null:r.stock===null)));
+
+  const tagEl=document.getElementById('matTableCountTag');
+  if(tagEl)tagEl.textContent=`${out.length} de ${rows.length} matéria(s)-prima(s)`;
+
+  $('matBody').innerHTML=out.length?out.map(r=>{
+    let hasStock=r.stock!==null;
+    let rowCls=!hasStock?'row-status-critical':r.stock<=0?'row-status-attention':'row-status-normal';
+    let stBadge=hasStock?(r.stock>0?'<span class="status-badge status-normal">ATUALIZADO</span>':'<span class="status-badge status-atencao">ZERADO</span>'):'<span class="status-badge status-critico">SEM SALDO</span>';
+    return `<tr class="v41-mp-row product-row-modern ${rowCls}" data-v41-mp="${encodeURIComponent(r.material)}" title="Clique para abrir o histórico e gráfico de evolução de ${escHtml(r.material)}">
+      <td class="col-center"><span class="cigam-code">${escHtml(r.code||'—')}</span></td>
+      <td>
+        <div class="prod-cell-main">${escHtml(r.material)} ${r.zero?`<span class="mat-qsp-pill">${r.zero} QSP/0%</span>`:''}</div>
+        <div class="prod-cell-sub">Clique para abrir histórico de estoque (últimas 20 leituras)</div>
+      </td>
+      <td class="col-right"><span class="stock-num ${!hasStock?'text-muted':r.stock<=0?'crit':'ok'}">${hasStock?stockFmt(r.stock)+' kg':'—'}</span></td>
+      <td class="col-center"><span class="ap-pill">${r.count} fórm.</span></td>
+      <td class="col-right ref-val">${r.max?pctFmt(r.max):'—'}</td>
+      <td class="col-right att-val">${r.min?pctFmt(r.min):'—'}</td>
+      <td class="col-center">${stBadge}</td>
+      <td><div class="mat-chips-wrap">${r.formulas.slice(0,6).map(x=>`<span class=material-chip>${escHtml(x)}</span>`).join('')}${r.formulas.length>6?`<span class="mat-more-chip">+${r.formulas.length-6}</span>`:''}</div></td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="8" class="empty-table-msg">Nenhuma matéria-prima encontrada para os filtros selecionados.</td></tr>`;
+
+  $('matBody').querySelectorAll('[data-v41-mp]').forEach(tr=>tr.onclick=()=>v41OpenMaterial(decodeURIComponent(tr.dataset.v41Mp)));
+
+  let tot=Math.max(1,rows.length);
+  let stocked=rows.filter(r=>r.stock!==null).length;
+  let noStock=rows.filter(r=>r.stock===null).length;
+  let zeroCnt=rows.reduce((a,r)=>a+r.zero,0);
+  let freq5Cnt=rows.filter(r=>r.count>=5).length;
+
+  $('matCount').textContent=rows.length;
+  $('matStocked').textContent=stocked;
+  $('matNoStock').textContent=noStock;
+  $('matZero').textContent=zeroCnt;
+
+  const setBar=(id,pct)=>{const el=document.getElementById(id);if(el)el.style.width=Math.min(100,Math.max(0,pct))+'%';};
+  setBar('matStockedBar',Math.round(stocked/tot*100));
+  setBar('matNoStockBar',noStock?Math.max(8,Math.round(noStock/tot*100)):0);
+  setBar('matZeroBar',Math.round(freq5Cnt/tot*100));
+
+  const sb=document.getElementById('matStockedBadge');if(sb)sb.textContent=`${Math.round(stocked/tot*100)}% coberto`;
+  const nsb=document.getElementById('matNoStockBadge');if(nsb)nsb.textContent=noStock?`${noStock} pendente(s)`:'100% lido';
+  const zb=document.getElementById('matZeroBadge');if(zb)zb.textContent=`${freq5Cnt} em 5+ fórm.`;
+
+  let activeMode='ALL';
+  if(cad==='COM')activeMode='COM';
+  else if(cad==='SEM')activeMode='SEM';
+  else if(f===5)activeMode='FREQ5';
+  document.querySelectorAll('#materiais [data-mat-filter]').forEach(c=>{
+    c.classList.toggle('active-card',c.getAttribute('data-mat-filter')===activeMode&&activeMode!=='ALL');
+  });
+
+  renderMaterialTopChart(rows);
+  renderMpHistory();
 }
 importMpPDF=async function(file){
   $('mpMsg').textContent=' Lendo relatório de matérias-primas...';let parsed=await parseMpPdfSmart(file);if(parsed.items.length<5)parsed=parseMpPosition(await linesPDF(file));if(parsed.items.length<5)throw Error('Não foi possível reconhecer o relatório.');

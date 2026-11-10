@@ -90,24 +90,102 @@
 </section>
 
 <section id=materiais class=panel>
-<div class=hero><h2>Matérias-primas Padronizadas</h2><p>O estoque de matérias-primas pode ser atualizado pelo relatório do CIGAM em formato <b>POSIÇÃO DE ESTOQUE</b> ou <b>Lote / Código_Material / Descrição / Qtde</b>. Os lotes do mesmo código são somados automaticamente e vinculados aos nomes padronizados usados pela Engenharia e pelo MRP.</p></div>
-<div class=mp-import-grid>
-  <div class=box style="margin:0"><h3>Atualizar estoque de matérias-primas</h3>
-    <div class=notice>Importe o PDF <b>POSIÇÃO DE ESTOQUE — CG02296</b>. Os lotes do mesmo código são somados automaticamente. A importação substitui a posição anterior e mantém histórico.</div>
-    <div style="margin-top:12px"><label class="filelabel primary">Selecionar relatório de MP<input type=file id=mpPdf accept="application/pdf"></label> <span id=mpMsg class=muted></span></div>
-    <div class=mp-source id=mpSource></div>
+<div class=hero><h2>Matérias-Primas Padronizadas &amp; Saldos CIGAM</h2><p>Controle integrado de matérias-primas da Engenharia e do MRP. Atualize os saldos pelo PDF de <b>Posição de Estoque (CG02296)</b> do CIGAM, acompanhe as matérias-primas mais utilizadas nas fórmulas e clique em qualquer linha para abrir o gráfico de evolução do item.</p></div>
+
+<div class="cards dash-kpi-cards mat-kpi-cards">
+  <div class="card kpi-exec accent-blue" data-mat-filter="ALL" onclick="filterMatByCard('ALL')" title="Clique para exibir todas as matérias-primas cadastradas">
+    <div class="kpi-exec-top"><span class="kpi-exec-label">Matérias-Primas no Cadastro</span><span class="kpi-exec-badge neutral" id="matCountBadge">Catálogo Único</span></div>
+    <b id=matCount>0</b>
+    <div class="kpi-exec-bar"><span id="matCountBar" style="width:100%;background:#2563eb"></span></div>
+    <small class="kpi-exec-sub">Base unificada Engenharia + Estoque</small>
   </div>
-  <div class=box style="margin:0"><h3>Histórico de estoque MP</h3><div id=mpHistory class="muted mp-history">Nenhuma atualização diária importada ainda.</div></div>
+  <div class="card kpi-exec accent-green" data-mat-filter="COM" onclick="filterMatByCard('COM')" title="Clique para filtrar somente matérias-primas com saldo lido no CIGAM">
+    <div class="kpi-exec-top"><span class="kpi-exec-label">Com Saldo Atualizado</span><span class="kpi-exec-badge ok" id="matStockedBadge">Ativas</span></div>
+    <b id=matStocked>0</b>
+    <div class="kpi-exec-bar"><span id="matStockedBar" style="width:0%;background:#16a34a"></span></div>
+    <small class="kpi-exec-sub">Localizadas na última posição de estoque</small>
+  </div>
+  <div class="card kpi-exec accent-red" data-mat-filter="SEM" onclick="filterMatByCard('SEM')" title="Clique para filtrar matérias-primas sem saldo no relatório atual">
+    <div class="kpi-exec-top"><span class="kpi-exec-label">Sem Saldo no Relatório</span><span class="kpi-exec-badge danger" id="matNoStockBadge">Revisar</span></div>
+    <b id=matNoStock>0</b>
+    <div class="kpi-exec-bar"><span id="matNoStockBar" style="width:0%;background:#dc2626"></span></div>
+    <small class="kpi-exec-sub">Conferir vínculo ou saldo físico antes de comprar</small>
+  </div>
+  <div class="card kpi-exec accent-amber" data-mat-filter="FREQ5" onclick="filterMatByCard('FREQ5')" title="Clique para filtrar matérias-primas presentes em 5 ou mais fórmulas">
+    <div class="kpi-exec-top"><span class="kpi-exec-label">Componentes QSP / Recorrentes</span><span class="kpi-exec-badge warn" id="matZeroBadge">Engenharia</span></div>
+    <b id=matZero>0</b>
+    <div class="kpi-exec-bar"><span id="matZeroBar" style="width:100%;background:#d97706"></span></div>
+    <small class="kpi-exec-sub" id="matZeroSub">QSP / inativos / condicionais nas fórmulas</small>
+  </div>
 </div>
-<div class=visual-grid>
-  <div class=visual-card><small>Matérias-primas no cadastro</small><b id=matCount>0</b><div class=sub>Cadastro único de engenharia + estoque</div></div>
-  <div class=visual-card><small>Com saldo atualizado</small><b id=matStocked>0</b><div class=sub>Encontradas na posição de estoque</div></div>
-  <div class=visual-card><small>Sem saldo no relatório</small><b id=matNoStock>0</b><div class=sub>Revisar antes de comprar</div></div>
-  <div class=visual-card><small>Componentes zerados</small><b id=matZero>0</b><div class=sub>QSP / inativos / condicionais</div></div>
+
+<div class="mp-import-grid mat-import-modern">
+  <div class="box mat-import-box">
+    <div class="mat-box-head">
+      <div>
+        <h3>Atualizar Estoque de Matérias-Primas (PDF CIGAM)</h3>
+        <p>Importe o relatório <b>POSIÇÃO DE ESTOQUE — CG02296</b>. Lotes do mesmo código são somados automaticamente.</p>
+      </div>
+      <span class="viz-tag">Sincronização MP</span>
+    </div>
+    <div class="mat-import-actions">
+      <label class="filelabel primary mat-upload-btn">📄 Selecionar PDF de Matérias-Primas<input type=file id=mpPdf accept="application/pdf"></label>
+      <div class="mp-source-pill" id=mpSource>Posição atual: —</div>
+    </div>
+    <div id=mpMsg class="mat-import-msg"></div>
+  </div>
+  <div class="box mat-history-box">
+    <div class="mat-box-head">
+      <div>
+        <h3>Histórico de Importações de MP</h3>
+        <p>Últimos relatórios diários consolidados no sistema.</p>
+      </div>
+      <span class="viz-tag">Registro Diário</span>
+    </div>
+    <div id=mpHistory class="muted mp-history mat-history-list">Nenhuma atualização diária importada ainda.</div>
+  </div>
 </div>
-<div class="viz-panel material-chart"><div class=viz-head><div><h3>Matérias-primas mais recorrentes</h3><p>Top 10 por quantidade de fórmulas em que aparecem.</p></div><span class=viz-tag>Engenharia</span></div><div id=matTopChart></div></div>
-<div class=toolbar><input id=matQ placeholder="Buscar matéria-prima padronizada ou código"><select id=matFreq><option value="">Todas as frequências</option><option value=5>Usada em 5+ fórmulas</option><option value=10>Usada em 10+ fórmulas</option></select><select id=matCadastro><option value="">Todos os saldos</option><option value=COM>Com saldo no relatório</option><option value=SEM>Sem saldo no relatório</option></select></div>
-<div class=tablewrap><table><thead><tr><th>Código CIGAM</th><th>Matéria-prima padronizada</th><th>Estoque atual</th><th>Fórmulas</th><th>Maior %</th><th>Menor % &gt; 0</th><th>Status</th><th>Fórmulas relacionadas</th></tr></thead><tbody id=matBody></tbody></table></div>
+
+<div class="insight-grid mat-insights">
+  <div class="viz-panel material-chart">
+    <div class=viz-head>
+      <div><h3>Matérias-primas mais recorrentes (Top 10)</h3><p>Ranking por número de fórmulas em que participam. Clique em uma barra para filtrar na tabela.</p></div>
+      <span class=viz-tag>Presença em Fórmulas</span>
+    </div>
+    <div id=matTopChart></div>
+  </div>
+  <div class="viz-panel material-stock-chart">
+    <div class=viz-head>
+      <div><h3>Maiores saldos físicos em estoque (Top 10)</h3><p>Ranking em kg conforme a última posição de estoque CIGAM. Clique para filtrar o item.</p></div>
+      <span class=viz-tag>Volume em Estoque (kg)</span>
+    </div>
+    <div id=matStockChart></div>
+  </div>
+</div>
+
+<div class="toolbar filter-bar-modern mat-toolbar">
+  <input id=matQ class="search-input-modern" placeholder="🔍 Buscar matéria-prima padronizada, código CIGAM ou fórmula...">
+  <select id=matFreq><option value="">Todas as frequências de uso</option><option value=5>Usada em 5+ fórmulas</option><option value=10>Usada em 10+ fórmulas</option></select>
+  <select id=matCadastro><option value="">Todos os status de saldo</option><option value=COM>Com saldo no relatório</option><option value=SEM>Sem saldo no relatório</option></select>
+  <button type="button" class="btn-outline-modern" onclick="filterMatByCard('ALL')">Limpar filtros</button>
+</div>
+
+<div class="viz-panel mat-table-panel">
+  <div class="viz-head">
+    <div><h3>Catálogo Padronizado de Matérias-Primas</h3><p>Clique em qualquer matéria-prima para abrir o histórico de leituras e o gráfico de evolução (últimos 20 pontos).</p></div>
+    <span class="viz-tag" id="matTableCountTag">Engenharia + Estoque</span>
+  </div>
+  <div class=tablewrap><table class="modern-stock-table mat-catalog-table"><thead><tr>
+    <th class="col-center">Cód. CIGAM</th>
+    <th>Matéria-Prima Padronizada</th>
+    <th class="col-right">Estoque Atual (kg)</th>
+    <th class="col-center">Fórmulas</th>
+    <th class="col-right">Maior %</th>
+    <th class="col-right">Menor % (&gt;0)</th>
+    <th class="col-center">Status</th>
+    <th>Fórmulas Relacionadas</th>
+  </tr></thead><tbody id=matBody></tbody></table></div>
+</div>
 </section>
 
 

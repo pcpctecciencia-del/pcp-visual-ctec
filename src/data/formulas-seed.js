@@ -5038,7 +5038,7 @@ const PROD_FORMULA= [
     "line": "ANVISA"
   },
   {
-    "product": "Peracid Oxi Dorum",
+    "product": "Dorum Peracid Oxi",
     "formula": "TEC OXI",
     "relation": "IGUAL",
     "note": "",

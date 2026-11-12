@@ -158,11 +158,12 @@ function applyRemoteRow(row, sourceLabel = 'nuvem') {
     }
 
     const hadTableteV108 = Boolean(OPS && OPS.tableteClorUnificadoV108);
+    const hadDorumV111 = Boolean(OPS && OPS.dorumPeracidUnificadoV111);
     try { if (typeof window.v102Run === 'function') window.v102Run(); } catch (e) {}
     try { if (typeof window.v104ApplyProFormulaLinks === 'function') window.v104ApplyProFormulaLinks(); } catch (e) {}
     try { if (typeof window.v106MergeAliases === 'function') window.v106MergeAliases(); } catch (e) {}
     try { if (typeof window.v63ApplyAll === 'function') window.v63ApplyAll(); } catch (e) {}
-    const migratedTableteV108 = !hadTableteV108 && Boolean(OPS && OPS.tableteClorUnificadoV108);
+    const migratedTableteV108 = (!hadTableteV108 && Boolean(OPS && OPS.tableteClorUnificadoV108)) || (!hadDorumV111 && Boolean(OPS && OPS.dorumPeracidUnificadoV111));
 
     // Persistir localmente sem disparar novo push
     origSave();

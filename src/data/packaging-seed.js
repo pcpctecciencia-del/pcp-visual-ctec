@@ -1225,7 +1225,7 @@ const PACKAGING_MASTER= [
   },
   {
     "line": "ANVISA",
-    "product": "Peracid Oxi Dorum",
+    "product": "Dorum Peracid Oxi",
     "brand": "DORUM",
     "packs": {
       "1L": {

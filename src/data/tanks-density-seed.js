@@ -559,7 +559,7 @@ const TANK_MASTER= [
   },
   {
     "line": "ANVISA",
-    "product": "Peracid Oxi Dorum",
+    "product": "Dorum Peracid Oxi",
     "manufacturing": "Terceirizado",
     "rule": "Cheia/Meia",
     "mainTank": "4-A",

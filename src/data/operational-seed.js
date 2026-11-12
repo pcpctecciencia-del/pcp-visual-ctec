@@ -1563,19 +1563,19 @@ const MPS_BACKUP_SEED = {
           "qty": 0,
           "note": ""
         },
-        "Peracid Oxi Dorum 5L": {
+        "Dorum Peracid Oxi 5L": {
           "qty": 0,
           "note": ""
         },
-        "Peracid Oxi Dorum 20L": {
+        "Dorum Peracid Oxi 20L": {
           "qty": 0,
           "note": ""
         },
-        "Peracid Oxi Dorum 50L": {
+        "Dorum Peracid Oxi 50L": {
           "qty": 0,
           "note": ""
         },
-        "Peracid Oxi Dorum 200L": {
+        "Dorum Peracid Oxi 200L": {
           "qty": 0,
           "note": ""
         },
@@ -10850,7 +10850,7 @@ const MPS_BACKUP_SEED = {
           "weight": 2800,
           "note": ""
         },
-        "Peracid Oxi Dorum": {
+        "Dorum Peracid Oxi": {
           "tanks": 0,
           "weight": 3000,
           "note": ""
@@ -11308,7 +11308,7 @@ const BATCH_REFS_BACKUP_SEED = {
     "Tec Oxi Exportação": 3000,
     "Remobac": 3000,
     "Oxyvet": 3000,
-    "Peracid Oxi Dorum": 3000,
+    "Dorum Peracid Oxi": 3000,
     "Amamilk Sani": 3000,
     "MartSani Power": 3000,
     "Prime Sani": 3000,

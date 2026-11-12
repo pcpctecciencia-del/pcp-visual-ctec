@@ -335,6 +335,82 @@ function v106MergeAliases(){
     }
   }catch(e){console.error('V108 Tablete Clor merge',e)}
 
+  // V111: Unificacao de "Peracid Oxi Dorum" (cadastro errado) + 001096 DORUM PERACID OXI 50KG em "Dorum Peracid Oxi"
+  try{
+    const OLD='Peracid Oxi Dorum',NEW='Dorum Peracid Oxi',OLDN=norm(OLD),NEWN=norm(NEW);
+    const isOldName=s=>norm(s||'')===OLDN;
+    [typeof PACKAGING_MASTER!=='undefined'?PACKAGING_MASTER:null,typeof TANK_MASTER!=='undefined'?TANK_MASTER:null,typeof PROD_FORMULA!=='undefined'?PROD_FORMULA:null].forEach(arr=>{
+      if(Array.isArray(arr))arr.forEach(o=>{if(o&&isOldName(o.product))o.product=NEW});
+    });
+    const renameKeys=obj=>{
+      if(!obj||typeof obj!=='object')return;
+      Object.keys(obj).forEach(k=>{
+        if(norm(k).startsWith(OLDN)){
+          const nk=NEW+k.slice(OLD.length);
+          if(!(nk in obj))obj[nk]=obj[k];
+          delete obj[k];
+        }
+      });
+    };
+    if(typeof BATCH_REFS!=='undefined')renameKeys(BATCH_REFS);
+    if(OPS&&OPS.formulaLinks){
+      if(OPS.formulaLinks[OLDN]&&!OPS.formulaLinks[NEWN])OPS.formulaLinks[NEWN]={...OPS.formulaLinks[OLDN],product:NEW};
+      delete OPS.formulaLinks[OLDN];
+    }
+    try{
+      const key='pcp_ctec_pack_custom_v99',o=JSON.parse(localStorage.getItem(key)||'{}')||{};
+      if(o[OLDN]){o[NEWN]={...(o[OLDN]||{}),...(o[NEWN]||{})};delete o[OLDN];localStorage.setItem(key,JSON.stringify(o));}
+    }catch(e){}
+    (D||[]).forEach(z=>{
+      if(isOldName(z.produto)){
+        z.produto=NEW;
+        z.item=String(z.item||'').replace(new RegExp(OLD,'ig'),NEW);
+      }
+    });
+    const isDorum=z=>z&&(norm(z.produto||'')===NEWN||v106Code(z.cod)==='1096'||/DORUM PERACID OXI/.test(norm(z.item||'')));
+    let dTarget=(D||[]).find(z=>norm(z.produto||'')===NEWN&&Number(apInfo(z.ap||z.item||'').liters)===50&&apInfo(z.ap||z.item||'').kind==='L');
+    if(!dTarget){
+      dTarget={linha:'ANVISA',produto:NEW,ap:'50',item:NEW+' 50L',cod:'001096',ref:0,att:0,est:'',atual:'',pedidoAtivo:false,hist:[],tipo:'Terceirizado',marca:'Terceirizada',fabricacao:'Interna',semPedido:true};
+      D.push(dTarget);
+    }
+    // Remove duplicatas criadas pela importacao (ex.: "DORUM PERACID OXI 50KG") mesclando saldo/historico na 50L
+    for(let i=D.length-1;i>=0;i--){
+      const z=D[i];
+      if(z===dTarget||!isDorum(z))continue;
+      const sameFamily50=norm(z.produto||'')!==NEWN||v106Code(z.cod)==='1096';
+      if(!sameFamily50)continue;
+      if(z.est!==''&&z.est!==null&&z.est!==undefined){dTarget.est=z.est;if(z.atual)dTarget.atual=z.atual;}
+      if(Array.isArray(z.hist)&&z.hist.length)dTarget.hist=[...(dTarget.hist||[]),...z.hist];
+      D.splice(i,1);
+    }
+    if(Array.isArray(R)&&R.length){
+      const revIdx=R.findIndex(r=>v106Code(r.cod)==='1096'||/DORUM PERACID OXI/.test(norm(r.nome||'')));
+      if(revIdx>=0){
+        const rev=R[revIdx];
+        if(rev.est!==undefined&&rev.est!==null&&rev.est!==''){dTarget.est=rev.est;dTarget.atual=now;}
+        R.splice(revIdx,1);
+      }
+    }
+    dTarget.linha=dTarget.linha&&norm(dTarget.linha)!=='AMOSTRAS'?dTarget.linha:'ANVISA';
+    dTarget.produto=NEW;dTarget.ap='50';dTarget.item=NEW+' 50L';dTarget.cod='001096';
+    dTarget.tipo='Terceirizado';dTarget.nomeRelatorio='DORUM PERACID OXI 50KG';
+    if(!OPS.dorumPeracidUnificadoV111){
+      if(dTarget.est===''||dTarget.est===null||dTarget.est===undefined)dTarget.est=-28;
+      dTarget.atual=dTarget.atual||now;
+      dTarget.pedidoAtivo=true;dTarget.semPedido=false;dTarget.terceiroPedido=true;
+      dTarget.hist=dTarget.hist||[];
+      dTarget.hist.push({data:now,estoque:dTarget.est,rel:'001096 — DORUM PERACID OXI 50KG',evento:'Unificado Peracid Oxi Dorum + 001096 DORUM PERACID OXI 50KG em Dorum Peracid Oxi'});
+      OPS.dorumPeracidUnificadoV111=true;
+    }
+    if(typeof MPS!=='undefined'&&MPS){
+      (MPS.batches||[]).forEach(b=>{
+        if(isOldName(b.produto))b.produto=NEW;
+        renameKeys(b.dist);renameKeys(b.counts);
+      });
+      [MPS.plans,MPS.masterPlans].filter(Boolean).forEach(group=>Object.values(group).forEach(renameKeys));
+    }
+  }catch(e){console.error('V111 Dorum Peracid Oxi merge',e)}
+
   try{save()}catch(e){console.error('V106 save',e)}
 }
 
@@ -352,6 +428,15 @@ find=function(c,n){
     return x;
   }
   const rule=v106RuleByCode(c)||v106RuleByName(n);
+  if(v106Code(c)==='1096' || /DORUM PERACID OXI|PERACID OXI DORUM/.test(norm(n||''))){
+    let x=(D||[]).find(z=>norm(z.produto)===norm('Dorum Peracid Oxi')&&Number(apInfo(z.ap||z.item||'').liters)===50&&apInfo(z.ap||z.item||'').kind==='L')||(D||[]).find(z=>v106Code(z.cod)==='1096');
+    if(!x){
+      x={linha:'ANVISA',produto:'Dorum Peracid Oxi',ap:'50',item:'Dorum Peracid Oxi 50L',cod:'001096',ref:0,att:0,est:'',atual:'',pedidoAtivo:true,hist:[],tipo:'Terceirizado',marca:'Terceirizada',fabricacao:'Interna',semPedido:false};
+      D.push(x);
+    }
+    x.produto='Dorum Peracid Oxi';x.ap='50';x.item='Dorum Peracid Oxi 50L';x.cod='001096';x.tipo='Terceirizado';x.terceiroPedido=true;x.nomeRelatorio='DORUM PERACID OXI 50KG';
+    return x;
+  }
   if(rule){
     const x=v106CanonicalRow(rule);
     x.cod=rule.code;x.nomeRelatorio=rule.report;x.tipo='Terceirizado';x.terceiroPedido=true;

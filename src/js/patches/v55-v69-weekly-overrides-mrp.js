@@ -555,6 +555,7 @@ OPS.stockOverrides=OPS.stockOverrides||{};
 function v62ProductKey(product){ return norm(product||''); }
 function v62ItemKey(x){ return norm((x&&x.item)||''); }
 function v62ApplyOverrides(){
+  if(typeof v63ApplyAll==='function'){v63ApplyAll();return;}
   D.forEach(x=>{
     let ak=v62ProductKey(x.produto), area=OPS.areaOverrides[ak];
     if(area) x.linha=area;
@@ -725,6 +726,62 @@ function v63StockKey(x){
   let c=String(x?.cod||'').trim();
   return c?'COD:'+c.replace(/\D/g,''):'ITEM:'+norm(x?.item||'');
 }
+function v63CodeDigits(v){return String(v||'').replace(/\D/g,'').replace(/^0+/,'');}
+function v63ParseDateMs(v){
+  const s=String(v||'').trim();if(!s)return 0;
+  let m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:[, ]+)(\d{2}):(\d{2})(?::(\d{2}))?/);
+  if(m)return new Date(+m[3],+m[2]-1,+m[1],+m[4],+m[5],+(m[6]||0)).getTime();
+  m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if(m)return new Date(+m[3],+m[2]-1,+m[1]).getTime();
+  const t=Date.parse(s);
+  return Number.isFinite(t)?t:0;
+}
+function v63IsReportHistEntry(h){
+  if(!h||typeof h!=='object')return false;
+  const rel=String(h.rel||'').trim();
+  if(!rel||rel==='Ajuste manual'||/^Cadastro\b/i.test(rel))return false;
+  const ev=String(h.evento||'');
+  if(/ÁREA\/LINHA ALTERADA|ESTOQUE AJUSTADO MANUALMENTE|ENCERRADO/i.test(ev))return false;
+  return N(h.estoque)!==null;
+}
+function v63LatestReportEntry(x){
+  const hist=Array.isArray(x?.hist)?x.hist:[];
+  let best=null,bestMs=-1,bestIdx=-1;
+  hist.forEach((h,idx)=>{
+    if(!v63IsReportHistEntry(h))return;
+    const ms=v63ParseDateMs(h.data);
+    if(ms>bestMs||(ms===bestMs&&idx>bestIdx)){
+      best=h;bestMs=ms;bestIdx=idx;
+    }
+  });
+  return best;
+}
+function v63ClearStockOverridesFor(x){
+  OPS.v63StockOverrides=OPS.v63StockOverrides||{};
+  OPS.stockOverrides=OPS.stockOverrides||{};
+  const itemN=norm(x?.item||'');
+  const codRaw=String(x?.cod||'').replace(/\D/g,'');
+  const codNoZero=v63CodeDigits(x?.cod);
+  const candidates=new Set([v63StockKey(x),'ITEM:'+itemN,itemN]);
+  if(codRaw)candidates.add('COD:'+codRaw);
+  if(codNoZero){
+    candidates.add('COD:'+codNoZero);
+    candidates.add('COD:'+codNoZero.padStart(6,'0'));
+  }
+  [OPS.v63StockOverrides,OPS.stockOverrides].forEach(map=>{
+    Object.keys(map).forEach(k=>{
+      if(candidates.has(k)){delete map[k];return;}
+      const ov=map[k];
+      if(ov&&typeof ov==='object'){
+        const ovItem=norm(ov.item||'');
+        const ovCod=v63CodeDigits(ov.cod);
+        if((itemN&&ovItem===itemN)||(codNoZero&&ovCod&&ovCod===codNoZero)){
+          delete map[k];
+        }
+      }
+    });
+  });
+}
 function v63AreaFor(x){
   OPS.v63AreaOverrides=OPS.v63AreaOverrides||{};
   OPS.areaOverrides=OPS.areaOverrides||{};
@@ -735,7 +792,14 @@ function v63StockOverrideFor(x){
   OPS.v63StockOverrides=OPS.v63StockOverrides||{};
   OPS.stockOverrides=OPS.stockOverrides||{};
   let k=v63StockKey(x);
-  return OPS.v63StockOverrides[k]||OPS.stockOverrides[norm(x?.item||'')]||null;
+  if(OPS.v63StockOverrides[k])return OPS.v63StockOverrides[k];
+  let codNoZero=v63CodeDigits(x?.cod);
+  if(codNoZero){
+    if(OPS.v63StockOverrides['COD:'+codNoZero])return OPS.v63StockOverrides['COD:'+codNoZero];
+    if(OPS.v63StockOverrides['COD:'+codNoZero.padStart(6,'0')])return OPS.v63StockOverrides['COD:'+codNoZero.padStart(6,'0')];
+  }
+  let itemN=norm(x?.item||'');
+  return OPS.v63StockOverrides['ITEM:'+itemN]||OPS.stockOverrides[itemN]||null;
 }
 function v63ApplyAll(){
   OPS.areaOverrides=OPS.areaOverrides||{};
@@ -745,13 +809,35 @@ function v63ApplyAll(){
   D.forEach(x=>{
     let area=v63AreaFor(x);
     if(area)x.linha=area;
+    let latestRep=v63LatestReportEntry(x);
+    let repMs=latestRep?v63ParseDateMs(latestRep.data):(!x.ajusteManualEstoque?v63ParseDateMs(x.atual):0);
     let ov=v63StockOverrideFor(x);
     if(ov&&Number.isFinite(Number(ov.value))){
+      let ovMs=v63ParseDateMs(ov.date);
+      if(latestRep&&repMs>0&&(ovMs===0||repMs>=ovMs)){
+        // Leitura do relatorio e mais recente que o ajuste manual: relatorio vence sempre.
+        v63ClearStockOverridesFor(x);
+        x.ajusteManualEstoque=false;
+        x.ajusteManualMotivo='';
+        x.ajusteManualData='';
+        x.est=N(latestRep.estoque);
+        if(latestRep.data)x.atual=latestRep.data;
+        return;
+      }
       x.est=Number(ov.value);
       x.ajusteManualEstoque=true;
       x.ajusteManualData=ov.date||x.ajusteManualData||'';
       x.ajusteManualMotivo=ov.reason||x.ajusteManualMotivo||'Ajuste manual de estoque';
       if(ov.date)x.atual=ov.date;
+    }else if(x.ajusteManualEstoque&&latestRep&&repMs>0){
+      let manMs=v63ParseDateMs(x.ajusteManualData||x.atual);
+      if(manMs===0||repMs>=manMs){
+        x.ajusteManualEstoque=false;
+        x.ajusteManualMotivo='';
+        x.ajusteManualData='';
+        x.est=N(latestRep.estoque);
+        if(latestRep.data)x.atual=latestRep.data;
+      }
     }
   });
 }
@@ -816,13 +902,22 @@ function v63SaveItem(){
   let stock=stockRaw===''?null:Number(stockRaw.replace(',','.'));
   let reason=String($('mEstoqueMotivo')?.value||'').trim();
 
+  let oldStock=N(x.est);
   x.ref=r===''?'':Number(r);
   x.att=a===''?'':Number(a);
   x.tipo=$('mTipo')?.value||'Próprio';
   if(!isThird(x))x.semPedido=false;
 
   if(area)v63SetArea(x.produto,area,now);
-  if(stockRaw!==''&&Number.isFinite(stock))v63SetStock(x,stock,reason,now);
+  if(stockRaw!==''&&Number.isFinite(stock)){
+    if(stock!==oldStock){
+      v63SetStock(x,stock,reason,now);
+    }else if(x.ajusteManualEstoque&&reason&&reason!==(x.ajusteManualMotivo||'')){
+      x.ajusteManualMotivo=reason;
+      let ov=v63StockOverrideFor(x);
+      if(ov)ov.reason=reason;
+    }
+  }
 
   v63ApplyAll();
   save();
@@ -889,11 +984,9 @@ const v63ImportPrev=importPDF;
 importPDF=async function(file){
   await v63ImportPrev(file);
   D.forEach(x=>{
-    let last=(x.hist||[]).at(-1);
-    if(last&&last.rel===file.name){
-      let key=v63StockKey(x);
-      delete OPS.v63StockOverrides[key];
-      delete OPS.stockOverrides[norm(x.item||'')];
+    let imported=(x.hist||[]).some(h=>h&&h.rel===file.name);
+    if(imported){
+      v63ClearStockOverridesFor(x);
       x.ajusteManualEstoque=false;
       x.ajusteManualMotivo='';
       x.ajusteManualData='';

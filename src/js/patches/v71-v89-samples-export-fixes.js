@@ -601,16 +601,17 @@ function v79DateValue(v){
   m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);if(m)return new Date(+m[3],+m[2]-1,+m[1]).getTime();
   const t=Date.parse(s);return Number.isFinite(t)?t:0;
 }
-function v79Score(x){return (v79DateValue(x?.atual)/1e12)+(String(x?.cod||'').trim()?8:0)+(N(x?.est)!==null?6:0)+(x?.ajusteManualEstoque?12:0)+(N(x?.ref)!==null&&N(x?.ref)!==0?2:0)+(N(x?.att)!==null&&N(x?.att)!==0?2:0);}
+function v79Score(x){return (v79DateValue(x?.atual)/1e12)+(String(x?.cod||'').trim()?8:0)+(N(x?.est)!==null?6:0)+(N(x?.ref)!==null&&N(x?.ref)!==0?2:0)+(N(x?.att)!==null&&N(x?.att)!==0?2:0);}
 function v79MergeGroup(rows){
   rows=[...rows].sort((a,b)=>v79Score(b)-v79Score(a));const base=rows[0];
-  const latest=rows.reduce((best,r)=>v79DateValue(r?.atual)>v79DateValue(best?.atual)?r:best,rows[0]);
-  const stockRow=rows.find(r=>r?.ajusteManualEstoque&&N(r?.est)!==null)||(N(latest?.est)!==null?latest:rows.find(r=>N(r?.est)!==null));
+  const withStock=rows.filter(r=>N(r?.est)!==null);
+  const stockRow=withStock.length?withStock.reduce((best,r)=>v79DateValue(r?.atual)>v79DateValue(best?.atual)?r:best,withStock[0]):null;
   if(stockRow){base.est=stockRow.est;if(stockRow.atual)base.atual=stockRow.atual;}
   const codRow=rows.find(r=>String(r?.cod||'').trim());if(codRow)base.cod=codRow.cod;
   const refRow=rows.find(r=>N(r?.ref)!==null&&N(r?.ref)!==0);if(refRow)base.ref=refRow.ref;
   const attRow=rows.find(r=>N(r?.att)!==null&&N(r?.att)!==0);if(attRow)base.att=attRow.att;
-  const manual=rows.find(r=>r?.ajusteManualEstoque);if(manual){base.ajusteManualEstoque=true;base.ajusteManualData=manual.ajusteManualData||base.ajusteManualData;base.ajusteManualMotivo=manual.ajusteManualMotivo||base.ajusteManualMotivo;}
+  if(stockRow&&stockRow.ajusteManualEstoque){base.ajusteManualEstoque=true;base.ajusteManualData=stockRow.ajusteManualData||base.ajusteManualData;base.ajusteManualMotivo=stockRow.ajusteManualMotivo||base.ajusteManualMotivo;}
+  else{base.ajusteManualEstoque=false;base.ajusteManualData='';base.ajusteManualMotivo='';}
   base.pedidoAtivo=rows.some(r=>r?.pedidoAtivo===true);base.semPedido=rows.every(r=>r?.semPedido===true);base.sampleCancelled=rows.every(r=>r?.sampleCancelled===true);
   if(rows.some(r=>isThird(r)))base.tipo='Terceirizado';
   const h=[],seen=new Set();rows.forEach(r=>(Array.isArray(r?.hist)?r.hist:[]).forEach(e=>{const k=JSON.stringify(e);if(!seen.has(k)){seen.add(k);h.push(e)}}));h.sort((a,b)=>v79DateValue(a?.data)-v79DateValue(b?.data));base.hist=h;
